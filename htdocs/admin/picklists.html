@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="../img/eazyinventory_logo.jpeg">
+    <title>Picklists - Admin</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <script src="../assets/js/ui.js" defer></script>
+    <script src="../assets/js/navbar.js" defer></script>
+</head>
+
+<body class="bg-gray-100">
+    <!-- Navbar injected by navbar.js -->
+
+    <div class="container mx-auto p-4 transition-all duration-300">
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6 glass-card">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800">Manage Picklists</h2>
+                <div class="flex gap-3">
+                    <a href="upload-picklist.html"
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+                        <i class="fas fa-plus mr-2"></i>New Upload
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex gap-4 items-center flex-wrap">
+                <span class="font-semibold text-gray-700">Filter:</span>
+                <select id="statusFilter"
+                    class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="partial">Partial</option>
+                </select>
+                <select id="pickerFilter"
+                    class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                    <option value="">All Stockers</option>
+                    <!-- Populated dynamically -->
+                </select>
+                <button onclick="fetchPicklists()"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Apply</button>
+            </div>
+
+            <!-- Picklist Table -->
+            <div class="overflow-hidden rounded-lg border border-gray-200">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ID</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Platform</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Date</th>
+                                <th
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Progress</th>
+                                <th
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Assigned To</th>
+                                <th
+                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="picklistBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Rows populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Modal -->
+    <div id="assignModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-96 transform transition-all">
+            <h3 class="text-lg md:text-xl font-bold mb-4 text-gray-800">Assign Picklist</h3>
+            <p class="mb-4 text-gray-600">Assign Picklist #<span id="modalPicklistId" class="font-semibold"></span> to:
+            </p>
+            <select id="modalPickerSelect"
+                class="w-full p-2.5 border border-gray-300 rounded-lg mb-6 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                <!-- Populated dynamically -->
+            </select>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal()"
+                    class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+                <button onclick="confirmAssign()"
+                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Assign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="detailsModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50 backdrop-blur-sm">
+        <div
+            class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg md:text-xl font-bold text-gray-800">Picklist Details #<span id="detailId"></span>
+                </h3>
+                <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="overflow-hidden rounded-lg border border-gray-200">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    SKU</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Size</th>
+                                <th
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Qty (Req/Pick)</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Rack</th>
+                                <th
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailsBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function fetchPicklists() {
+            const status = document.getElementById('statusFilter').value;
+            const picker = document.getElementById('pickerFilter').value;
+
+            fetch(`../api/picklist.php?action=list&status=${status}&picker_id=${picker}`)
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('picklistBody');
+                    tbody.innerHTML = '';
+                    data.forEach(p => {
+                        const progress = Math.round((p.picked_items / p.total_items) * 100) || 0;
+                        const statusColor = {
+                            'pending': 'bg-gray-100 text-gray-800',
+                            'in_progress': 'bg-blue-100 text-blue-800',
+                            'completed': 'bg-green-100 text-green-800',
+                            'partial': 'bg-yellow-100 text-yellow-800'
+                        }[p.status] || 'bg-gray-100';
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${p.picklist_id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.platform}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new
+                                Date(p.upload_date).toLocaleDateString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="text-xs text-center mt-1 text-gray-500">${p.picked_items}/${p.total_items}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                            ${p.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${p.picker_name || '<span class="text-red-400">Unassigned</span>'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="openAssignModal(${p.picklist_id})"
+                            class="text-indigo-600 hover:text-indigo-900 mr-3 font-semibold">Assign</button>
+                        <button onclick="viewDetails(${p.picklist_id})"
+                            class="text-gray-600 hover:text-gray-900 font-semibold">View</button>
+                    </td>
+                    `;
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+
+        function loadPickers() {
+            fetch('../api/picklist.php?action=pickers')
+                .then(res => res.json())
+                .then(pickers => {
+                    const selects = [document.getElementById('pickerFilter'),
+                    document.getElementById('modalPickerSelect')];
+                    selects.forEach(sel => {
+                        // Keep first option (All Pickers or empty)
+                        const first = sel.firstElementChild;
+                        sel.innerHTML = '';
+                        if (first) {
+                            sel.appendChild(first);
+                        }
+
+                        pickers.forEach(u => {
+                            const opt = document.createElement('option');
+                            opt.value = u.id;
+                            opt.textContent = u.name;
+                            sel.appendChild(opt);
+                        });
+                    });
+                });
+        }
+
+        function openAssignModal(id) {
+            currentAssignId = id;
+            document.getElementById('modalPicklistId').textContent = id;
+            document.getElementById('assignModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('assignModal').classList.add('hidden');
+            currentAssignId = null;
+        }
+
+        function confirmAssign() {
+            const pickerId = document.getElementById('modalPickerSelect').value;
+            if (!pickerId) {
+                alert("Please select a picker");
+                return;
+            }
+            fetch('../api/picklist.php?action=assign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ picklist_id: currentAssignId, picker_id: pickerId })
+            }).then(() => {
+                closeModal();
+                fetchPicklists();
+            });
+        }
+
+        function viewDetails(id) {
+            document.getElementById('detailId').textContent = id;
+            document.getElementById('detailsModal').classList.remove('hidden');
+
+            fetch(`../api/picklist.php?action=items&picklist_id=${id}`)
+                .then(res => res.json())
+                .then(items => {
+                    const tbody = document.getElementById('detailsBody');
+                    tbody.innerHTML = '';
+                    items.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.sku}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 uppercase">${item.size}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                        ${item.quantity_required} / <span
+                            class="${item.quantity_picked < item.quantity_required ? 'text-red-600' : 'text-green-600'} font-bold">${item.quantity_picked}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.rack_location}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    ${item.status === 'picked' ? 'bg-green-100 text-green-800' :
+                                item.status === 'pending' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-red-100 text-red-800'}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    `;
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('detailsModal').classList.add('hidden');
+        }
+
+        // Logout function is handled by navbar.js now, but keeping for safety if called directly
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
+
+        loadPickers();
+        fetchPicklists();
+    </script>
+</body>
+
+</html>

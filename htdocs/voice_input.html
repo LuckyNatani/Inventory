@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
+    <title>Return Input</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/navbar.js" defer></script>
+    <script src="assets/js/ui.js" defer></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Navbar injected by navbar.js -->
+
+    <main class="flex-1 p-4 flex flex-col items-center justify-center">
+        <div class="w-full max-w-2xl">
+            <!-- Control Card -->
+            <div class="bg-white rounded-2xl shadow-xl p-4 mb-4 text-center transform transition-all hover:shadow-2xl">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800 mb-1">Return Input</h1>
+                <p class="text-gray-500 text-sm mb-3">Speak naturally: "5014 Large 201 Double XL"</p>
+
+                <div class="relative inline-block">
+                    <button id="micBtn"
+                        class="w-16 h-16 rounded-full bg-indigo-600 text-white shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-all duration-300 relative z-10">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <div id="micPulse" class="absolute inset-0 bg-indigo-500 rounded-full opacity-0 z-0"></div>
+                </div>
+
+                <p id="statusText" class="mt-4 text-gray-600 font-medium h-6">Tap to Start</p>
+            </div>
+
+            <!-- Transcript View -->
+            <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
+                <p class="text-xs font-bold text-gray-400 uppercase mb-2">Live Transcript</p>
+                <div id="transcript" class="text-gray-700 min-h-[40px] italic">...</div>
+            </div>
+
+            <!-- Parsed Items List -->
+            <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-gray-800">Parsed Items (<span id="itemCount">0</span>)</h2>
+                    <button id="clearBtn"
+                        class="text-xs text-red-500 hover:text-red-700 font-medium uppercase tracking-wider">
+                        Clear All
+                    </button>
+                </div>
+
+                <div id="parsedList" class="space-y-3">
+                    <!-- Items will be injected here -->
+                    <div id="emptyState" class="text-center py-8 text-gray-400 text-sm">
+                        No items detected yet.
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-gray-100">
+                    <button id="saveBtn" disabled
+                        class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        Save to Database
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Templates -->
+    <template id="itemTemplate">
+        <div
+            class="parsed-item flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3 shadow-sm animate-fade-in hover:border-indigo-300 transition-colors">
+            <div class="flex items-center gap-4">
+                <div
+                    class="h-10 w-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-bold text-lg size-badge">
+                    L
+                </div>
+                <div>
+                    <p class="text-sm text-gray-400 uppercase text-[10px] font-bold tracking-wider">SKU</p>
+                    <p class="text-lg font-mono font-bold text-gray-800 sku-text">5014</p>
+                </div>
+            </div>
+            <button class="delete-btn text-gray-300 hover:text-red-500 p-2 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </template>
+
+    <style>
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .mic-active #micPulse {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        .mic-active #micBtn {
+            background-color: #ef4444;
+            /* Red when recording */
+        }
+    </style>
+
+    <script src="assets/js/voice_utils.js"></script>
+    <script src="assets/js/voice_input.js"></script>
+</body>
+
+</html>

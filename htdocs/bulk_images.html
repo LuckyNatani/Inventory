@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
+    <title>Bulk Image Upload - Inventory</title>
+    <script src="assets/js/ui.js" defer></script>
+    <script src="assets/js/config.js" defer></script>
+    <script src="assets/js/navbar.js" defer></script>
+    <script src="assets/js/bulk_images.js" defer></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+
+<body class="bg-gray-100">
+    <!-- Navbar will be injected here by navbar.js -->
+
+    <div class="container mx-auto p-4 max-w-4xl transition-all duration-300">
+        <div class="flex items-center gap-4 mb-6">
+            <a href="utilities.html" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <h1 class="text-xl md:text-2xl font-bold text-gray-800">Bulk Image Upload</h1>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-8 mb-6 glass-card">
+            <p class="text-gray-500 mb-6">Upload multiple product images to automatically match them with SKUs.</p>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+                <h3 class="font-semibold text-blue-800 mb-2"><i class="fas fa-info-circle mr-2"></i>Instructions</h3>
+                <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
+                    <li>Select multiple image files (JPG, PNG, WEBP).</li>
+                    <li><strong>Naming Convention:</strong> The filename (excluding extension) MUST match the SKU.</li>
+                    <li>Example: To update image for SKU <code>FAB-123</code>, name the file <code>FAB-123.jpg</code>.
+                    </li>
+                    <li>Images will be automatically converted to optimized WebP format.</li>
+                </ul>
+            </div>
+
+            <div class="mb-8">
+                <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative"
+                    id="dropZone">
+                    <input type="file" id="fileInput" multiple accept="image/*"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <div class="flex flex-col items-center justify-center">
+                        <i class="fas fa-cloud-upload-alt text-3xl lg:text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600 font-medium mb-1">Drag & drop images here</p>
+                        <p class="text-gray-400 text-sm">or click to browse</p>
+                    </div>
+                </div>
+
+                <div id="fileStats" class="mt-4 hidden flex justify-between items-center text-sm text-gray-600">
+                    <span id="selectedCount">0 files selected</span>
+                    <button id="uploadBtn"
+                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-upload mr-2"></i> Start Upload
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="hidden">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Upload Status</h3>
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <div class="max-h-96 overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        File</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        SKU Match</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>

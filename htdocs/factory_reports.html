@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
+    <title>Factory Reports | Inventory Manager</title>
+    <script src="assets/js/ui.js" defer></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/navbar.js" defer></script>
+    <script src="assets/js/config.js" defer></script>
+    <script src="assets/js/factory_reports.js" defer></script>
+</head>
+
+<body class="bg-gray-100">
+    <!-- Navbar injected by navbar.js -->
+
+    <div class="container mx-auto p-2 md:p-4 transition-all duration-300">
+        <div class="bg-white rounded-xl shadow-sm p-3 md:p-6 mb-4 md:mb-6 glass-card">
+
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800">Factory Reports</h1>
+                    <p class="text-xs md:text-sm text-gray-700 mt-1">Analyze factory performance and dependencies</p>
+                </div>
+                <div>
+                    <a href="factory_rates.html"
+                        class="text-gray-800 bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none transition-colors shadow-sm">
+                        <i class="fas fa-arrow-left mr-1"></i> Back to Rates
+                    </a>
+                </div>
+            </div>
+
+            <!-- Report Selection -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <!-- Report Card 1 -->
+                <div class="report-card cursor-pointer border-2 border-transparent hover:border-indigo-500 rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm group"
+                    onclick="selectReport('factory_sku')">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="bg-indigo-100 text-indigo-600 p-3 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <i class="fas fa-industry text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-700">Factory-wise SKU</h3>
+                            <p class="text-xs text-gray-700">View all SKUs worked by a factory</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Card 2 -->
+                <div class="report-card cursor-pointer border-2 border-transparent hover:border-rose-500 rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm group"
+                    onclick="selectReport('factory_dependency')">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="bg-rose-100 text-rose-600 p-3 rounded-lg group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                            <i class="fas fa-exclamation-triangle text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-700">Factory Dependency</h3>
+                            <p class="text-xs text-gray-700">Risk analysis: SKUs with single factory</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Card 3 -->
+                <div class="report-card cursor-pointer border-2 border-transparent hover:border-emerald-500 rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm group"
+                    onclick="selectReport('rate_history')">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="bg-emerald-100 text-emerald-600 p-3 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                            <i class="fas fa-history text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-700">Rate History</h3>
+                            <p class="text-xs text-gray-700">Track rate changes over time per SKU</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Filters Area -->
+            <div id="reportFilters" class="mb-6 hidden animate-fade-in-up">
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h3 id="currentReportTitle" class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
+                        Sort Options</h3>
+
+                    <!-- Form: Factory SKU -->
+                    <div id="filterFactorySku" class="hidden filter-group">
+                        <div class="flex items-end gap-3">
+                            <div class="flex-1 max-w-xs">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Select Factory</label>
+                                <select id="factorySelect"
+                                    class="w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                    <option value="">Choose Factory...</option>
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <button onclick="runFactorySkuReport()"
+                                class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-indigo-700">
+                                Generate
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Form: Dependency -->
+                    <div id="filterDependency" class="hidden filter-group">
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm text-gray-800">Identify SKUs that have only ever been worked on by a
+                                single unique factory.</p>
+                            <button onclick="runDependencyReport()"
+                                class="bg-rose-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-rose-700">
+                                Run Risk Analysis
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Form: Rate History -->
+                    <div id="filterRateHistory" class="hidden filter-group">
+                        <div class="flex flex-col md:flex-row gap-3">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Enter SKU</label>
+                                <input type="text" id="historySkuInput"
+                                    class="w-full p-2 border border-gray-300 rounded text-sm"
+                                    placeholder="e.g. 5014CO_NAVY BLUE">
+                            </div>
+                            <!-- Optional Segment Filter -->
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Segment (Optional)</label>
+                                <select id="segmentSelect"
+                                    class="w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                    <option value="">All Segments</option>
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="runRateHistoryReport()"
+                                    class="bg-emerald-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-emerald-700">
+                                    View History
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Suggestions -->
+                        <div id="skuSuggestions"
+                            class="hidden mt-1 bg-white border rounded shadow-lg absolute z-10 max-h-40 overflow-y-auto">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Results Area -->
+            <div id="reportResults" class="hidden animate-fade-in-up">
+                <!-- Dynamic Content Table -->
+                <div class="overflow-x-auto rounded-lg border border-gray-200">
+                    <table class="w-full text-sm text-left text-gray-700">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                            <tr id="resultHeaderRow">
+                                <!-- Headers injected via JS -->
+                            </tr>
+                        </thead>
+                        <tbody id="resultBody" class="bg-white divide-y divide-gray-100">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="emptyState" class="hidden text-center py-12 text-gray-600">
+                    <i class="fas fa-inbox text-4xl mb-2"></i>
+                    <p>No results found for current criteria.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>
+

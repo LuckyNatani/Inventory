@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="../img/eazyinventory_logo.jpeg">
+    <title>Pending Orders</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link href="../assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <script src="../assets/js/ui.js" defer></script>
+    <script src="../assets/js/navbar.js" defer></script>
+    <script>
+        // Debounce utility
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50">
+    <div id="navbar-container"></div>
+
+    <div class="container p-2 md:p-4">
+        <div class="max-w-[100%] md:max-w-[95%] mx-auto">
+            <!-- Main Card -->
+            <div class="bg-white rounded-xl shadow-sm p-3 md:p-6 border border-gray-100">
+                <div
+                    class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 md:mb-6 gap-3 md:gap-4">
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800">Pending Orders</h1>
+
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-4 w-full md:w-auto">
+                        <!-- Date Filter Group -->
+                        <div class="flex bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-full">
+                            <button onclick="setDateFilter('today')" id="btn-today"
+                                class="px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md bg-white shadow-sm text-indigo-600 transition-all whitespace-nowrap">
+                                Today
+                            </button>
+                            <button onclick="setDateFilter('yesterday')" id="btn-yesterday"
+                                class="px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 transition-all whitespace-nowrap">
+                                Yesterday
+                            </button>
+                            <button onclick="toggleCustomDate()" id="btn-custom"
+                                class="px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 transition-all whitespace-nowrap">
+                                Custom
+                            </button>
+                        </div>
+
+                        <!-- Custom Date Range (Hidden by default) -->
+                        <div id="customDateRange"
+                            class="hidden flex flex-wrap items-center gap-2 bg-white p-1 rounded-lg border border-gray-200">
+                            <input type="date" id="startDate"
+                                class="border border-gray-300 rounded-lg px-2 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-28 md:w-32">
+                            <span class="text-gray-400">-</span>
+                            <input type="date" id="endDate"
+                                class="border border-gray-300 rounded-lg px-2 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-28 md:w-32">
+                            <button onclick="applyCustomDate()"
+                                class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs md:text-sm hover:bg-indigo-700 transition-colors">Apply</button>
+                        </div>
+
+                        <button onclick="openHistoryModal()"
+                            class="bg-gray-600 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg hover:bg-gray-700 transition-colors shadow-sm flex items-center gap-2 ml-auto md:ml-0 text-sm">
+                            <i class="fas fa-history"></i> <span class="hidden sm:inline">History</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pending Items Table -->
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Picklist #</th>
+                                    <th
+                                        class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date
+                                    </th>
+                                    <th
+                                        class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        SKU
+                                    </th>
+                                    <th
+                                        class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Size
+                                    </th>
+                                    <th
+                                        class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Pending Qty
+                                    </th>
+                                    <th
+                                        class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Platform</th>
+                                    <th
+                                        class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status</th>
+                                    <th
+                                        class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Items will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Substitution Modal -->
+    <div id="subModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 backdrop-blur-sm p-2 md:p-0">
+        <div
+            class="bg-white rounded-xl w-full max-w-[95%] md:max-w-2xl p-4 md:p-6 max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg md:text-xl font-bold text-gray-800">Substitute Item</h3>
+                <button onclick="closeSubModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="mb-4 p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 class="font-semibold text-xs md:text-sm text-gray-600 mb-2">Original Item</h4>
+                <div class="grid grid-cols-2 gap-2 md:gap-4 text-sm">
+                    <div><span class="text-gray-500">SKU:</span> <span id="origSku"
+                            class="font-medium text-gray-900"></span></div>
+                    <div><span class="text-gray-500">Size:</span> <span id="origSize"
+                            class="font-medium text-gray-900"></span></div>
+                    <div><span class="text-gray-500">Qty Needed:</span> <span id="origQty"
+                            class="font-medium text-gray-900"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Search Substitute</label>
+                <div class="flex gap-2">
+                    <input type="text" id="subSearch"
+                        class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        placeholder="Search SKU or Category...">
+                    <button onclick="searchSub()"
+                        class="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm">Search</button>
+                </div>
+            </div>
+
+            <div id="subResults"
+                class="mb-4 border border-gray-200 rounded-lg max-h-40 overflow-y-auto hidden bg-gray-50">
+                <!-- Search results -->
+            </div>
+
+            <div id="selectedSub" class="hidden border-t border-gray-200 pt-4">
+                <h4 class="font-semibold text-xs md:text-sm text-gray-600 mb-2">Selected Substitute</h4>
+                <div class="grid grid-cols-2 gap-3 md:gap-4 mb-4 text-sm">
+                    <div><span class="text-gray-500">SKU:</span> <span id="selSubSku"
+                            class="font-medium text-gray-900"></span></div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Size</label>
+                        <select id="selSubSize"
+                            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Quantity</label>
+                        <input type="number" id="selSubQty"
+                            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Reason</label>
+                        <input type="text" id="subReason"
+                            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                            placeholder="e.g. Out of stock">
+                    </div>
+                </div>
+                <button id="confirmSubBtn" onclick="confirmSub()"
+                    class="w-full bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition-colors shadow-sm text-sm md:text-base">Confirm
+                    Substitution</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 backdrop-blur-sm p-2 md:p-0">
+        <div
+            class="bg-white rounded-xl w-full max-w-[95%] md:max-w-4xl p-4 md:p-6 max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg md:text-xl font-bold text-gray-800">Substitution History</h3>
+                <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <input type="date" id="historyDateFilter" onchange="fetchHistory()"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-gray-200">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Date</th>
+                                <th
+                                    class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Original</th>
+                                <th
+                                    class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Substitute</th>
+                                <th
+                                    class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Reason</th>
+                                <th
+                                    class="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentItem = null;
+        let selectedInventory = null;
+
+        function setDateFilter(type) {
+            const today = new Date();
+            let dateStr = '';
+
+            // Reset UI
+            document.getElementById('btn-today').className = "px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 transition-all whitespace-nowrap";
+            document.getElementById('btn-yesterday').className = "px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 transition-all whitespace-nowrap";
+            document.getElementById('btn-custom').className = "px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 transition-all whitespace-nowrap";
+            document.getElementById('customDateRange').classList.add('hidden');
+
+            if (type === 'today') {
+                document.getElementById('btn-today').className = "px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md bg-white shadow-sm text-indigo-600 whitespace-nowrap";
+                dateStr = today.toISOString().split('T')[0];
+                fetchPending(dateStr);
+            } else if (type === 'yesterday') {
+                document.getElementById('btn-yesterday').className = "px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md bg-white shadow-sm text-indigo-600 whitespace-nowrap";
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                dateStr = yesterday.toISOString().split('T')[0];
+                fetchPending(dateStr);
+            }
+        }
+
+        function toggleCustomDate() {
+            document.getElementById('btn-today').className = "px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 transition-all whitespace-nowrap";
+            document.getElementById('btn-yesterday').className = "px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 transition-all whitespace-nowrap";
+            document.getElementById('btn-custom').className = "px-3 sm:px-4 py-1.5 text-xs md:text-sm font-medium rounded-md bg-white shadow-sm text-indigo-600 whitespace-nowrap";
+            document.getElementById('customDateRange').classList.remove('hidden');
+        }
+
+        function applyCustomDate() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            if (start && end) {
+                fetchPending(null, start, end);
+            }
+        }
+
+        function fetchPending(date = null, startDate = null, endDate = null) {
+            let url = '../api/substitution.php?action=pending_items';
+            if (startDate && endDate) {
+                url += `&start_date=${startDate}&end_date=${endDate}`;
+            } else if (date) {
+                url += `&date=${date}`;
+            } else {
+                // Default to today if no params
+                const today = new Date().toISOString().split('T')[0];
+                url += `&date=${today}`;
+            }
+
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }
+                    return res.text().then(text => {
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error("Server returned non-JSON response:", text);
+                            throw new Error("Invalid server response");
+                        }
+                    });
+                })
+                .then(data => {
+                    const tbody = document.getElementById('pendingTableBody');
+                    tbody.innerHTML = '';
+                    window.pendingItems = data;
+
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No pending items found.</td></tr>';
+                        return;
+                    }
+
+                    data.forEach((item, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm font-bold text-indigo-600">#${item.picklist_id}</td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-500">${new Date(item.upload_date).toLocaleDateString()}</td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-900 font-medium">${item.sku}</td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-500 uppercase">${item.size}</td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-900 font-bold">${item.quantity_pending}</td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-500">${item.platform}</td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-[10px] md:text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">${item.status}</span>
+                </td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm font-medium">
+                    <button onclick='openSubModal(${index})' class="text-indigo-600 hover:text-indigo-900 font-bold">Substitute</button>
+                </td>
+            `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error fetching pending items:', err);
+                    const tbody = document.getElementById('pendingTableBody');
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="px-6 py-8 text-center text-red-500">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <p class="font-medium">Error loading data: ${err.message}</p>
+                                    <p class="text-sm text-gray-500">Please refresh the page to try again.</p>
+                                    <button onclick="window.location.reload()" class="mt-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
+                                        Refresh Page
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+        }
+
+        function fetchHistory() {
+            const date = document.getElementById('historyDateFilter').value;
+            fetch(`../api/substitution.php?action=substitution_history&date=${date}`)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }
+                    return res.text().then(text => {
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error("Server returned non-JSON response:", text);
+                            throw new Error("Invalid server response");
+                        }
+                    });
+                })
+                .then(data => {
+                    const tbody = document.getElementById('historyTableBody');
+                    tbody.innerHTML = '';
+
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No history found.</td></tr>';
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-500">${new Date(item.substituted_at).toLocaleString()}</td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-900">
+                    <div class="font-medium">${item.original_sku} (${item.original_size.toUpperCase()})</div>
+                    <div class="text-[10px] md:text-xs text-gray-500">Qty: ${item.original_quantity}</div>
+                </td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-900">
+                    <div class="font-medium">${item.substitute_sku} (${item.substitute_size.toUpperCase()})</div>
+                    <div class="text-[10px] md:text-xs text-gray-500">Qty: ${item.substitute_quantity}</div>
+                </td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-500">${item.reason}</td>
+                <td class="px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-500">${item.substituted_by_name || 'Unknown'}</td>
+            `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error fetching history:', err);
+                    const tbody = document.getElementById('historyTableBody');
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-red-500">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <p class="font-medium">Error loading history: ${err.message}</p>
+                                    <p class="text-sm text-gray-500">Please refresh the page to try again.</p>
+                                    <button onclick="window.location.reload()" class="mt-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
+                                        Refresh Page
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+        }
+
+        function openHistoryModal() {
+            document.getElementById('historyModal').classList.remove('hidden');
+            fetchHistory();
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        function openSubModal(index) {
+            currentItem = window.pendingItems[index];
+            document.getElementById('origSku').textContent = currentItem.sku;
+            document.getElementById('origSize').textContent = currentItem.size.toUpperCase();
+            document.getElementById('origQty').textContent = currentItem.quantity_pending;
+
+            document.getElementById('subSearch').value = '';
+            document.getElementById('subResults').innerHTML = '';
+            document.getElementById('subResults').classList.add('hidden');
+            document.getElementById('selectedSub').classList.add('hidden');
+
+            document.getElementById('subModal').classList.remove('hidden');
+        }
+
+        function closeSubModal() {
+            document.getElementById('subModal').classList.add('hidden');
+            currentItem = null;
+            selectedInventory = null;
+        }
+
+        function searchSub() {
+            const query = document.getElementById('subSearch').value;
+            if (!query) return;
+
+            fetch(`../api/substitution.php?action=search_substitute&query=${encodeURIComponent(query)}&size=${currentItem.size}`)
+                .then(res => res.json())
+                .then(data => {
+                    const resultsDiv = document.getElementById('subResults');
+                    resultsDiv.innerHTML = '';
+                    resultsDiv.classList.remove('hidden');
+
+                    if (data.length === 0) {
+                        resultsDiv.innerHTML = '<div class="p-4 text-gray-500 text-center">No substitutes found.</div>';
+                        return;
+                    }
+
+                    data.forEach(inv => {
+                        const div = document.createElement('div');
+                        div.className = 'p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 flex justify-between items-center transition-colors';
+                        div.innerHTML = `
+                <div>
+                    <div class="font-medium text-gray-900">${inv.sku}</div>
+                    <div class="text-xs text-gray-500">${inv.category} | Rack: ${inv.rack_location}</div>
+                </div>
+                <div class="text-sm">
+                    Stock (${currentItem.size.toUpperCase()}): <span class="${inv[currentItem.size] > 0 ? 'text-green-600 font-bold' : 'text-red-600'}">${inv[currentItem.size]}</span>
+                </div>
+            `;
+                        div.onclick = () => selectSubstitute(inv);
+                        resultsDiv.appendChild(div);
+                    });
+                });
+        }
+
+        function selectSubstitute(inv) {
+            selectedInventory = inv;
+            document.getElementById('selSubSku').textContent = inv.sku;
+            document.getElementById('selectedSub').classList.remove('hidden');
+
+            // Populate sizes
+            const sizeSelect = document.getElementById('selSubSize');
+            sizeSelect.innerHTML = '';
+            ['s', 'm', 'l', 'xl', 'xxl', 'xxxl'].forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = `${s.toUpperCase()} (Stock: ${inv[s]})`;
+                if (s === currentItem.size) opt.selected = true;
+                sizeSelect.appendChild(opt);
+            });
+
+            document.getElementById('selSubQty').value = currentItem.quantity_pending;
+            document.getElementById('confirmSubBtn').disabled = false;
+        }
+
+        function confirmSub() {
+            if (!selectedInventory || !currentItem) return;
+
+            const payload = {
+                original_item_id: currentItem.item_id,
+                substitute_sku: selectedInventory.sku,
+                substitute_size: document.getElementById('selSubSize').value,
+                substitute_quantity: document.getElementById('selSubQty').value,
+                reason: document.getElementById('subReason').value,
+                user_id: localStorage.getItem('userId') || 1
+            };
+
+            fetch('../api/substitution.php?action=substitute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Substitution confirmed!");
+                        closeSubModal();
+                        // Refresh with current filters
+                        const activeBtn = document.querySelector('button[class*="bg-white"]');
+                        if (activeBtn && activeBtn.id === 'btn-today') setDateFilter('today');
+                        else if (activeBtn && activeBtn.id === 'btn-yesterday') setDateFilter('yesterday');
+                        else if (activeBtn && activeBtn.id === 'btn-custom') applyCustomDate();
+                        else setDateFilter('today');
+                    } else {
+                        alert("Error: " + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => alert("Error: " + err.message));
+        }
+
+        // Logout function is handled by navbar.js now, but keeping for safety if called directly
+        function logout() {
+            localStorage.clear();
+            window.location.href = '../login.html';
+        }
+
+        // Initial load
+        setDateFilter('today');
+
+        // Add debounce to search input
+        document.getElementById('subSearch').addEventListener('input', debounce(function () {
+            searchSub();
+        }, 500));
+    </script>
+</body>
+
+</html>
+

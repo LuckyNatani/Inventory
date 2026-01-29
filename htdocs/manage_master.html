@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
+    <title>Manage Master Data | Inventory Manager</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/navbar.js" defer></script>
+</head>
+
+<body class="bg-gray-100">
+    <!-- Navbar injected by navbar.js -->
+
+    <div class="container mx-auto p-4 min-h-[calc(100vh-80px)] flex flex-col justify-center items-center">
+        <div class="w-full max-w-4xl">
+            <div class="flex items-center gap-4 mb-6">
+                <a href="factory_rates.html" class="text-gray-500 hover:text-indigo-600 transition-colors">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Manage Master Data</h1>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <!-- Tabs -->
+                <div class="flex border-b border-gray-200">
+                    <button id="tabSegments"
+                        class="flex-1 py-4 text-center font-medium text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50 transition-colors">
+                        <i class="fas fa-layer-group mr-2"></i> Segments
+                    </button>
+                    <button id="tabFactories"
+                        class="flex-1 py-4 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fas fa-industry mr-2"></i> Factories
+                    </button>
+                    <button id="tabCategories"
+                        class="flex-1 py-4 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fas fa-tags mr-2"></i> Categories
+                    </button>
+                    <button id="tabFabrics"
+                        class="flex-1 py-4 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fas fa-scroll mr-2"></i> Fabrics
+                    </button>
+                </div>
+
+                <div class="p-6">
+                    <!-- Segments Section -->
+                    <div id="contentSegments" class="space-y-6">
+                        <!-- Add Segment -->
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Add / Edit Segment
+                            </h3>
+                            <form id="addSegmentForm" class="flex gap-2 relative">
+                                <input type="hidden" name="segment_id" id="segmentId">
+                                <input type="text" name="name"
+                                    class="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                    placeholder="Enter segment name..." required>
+                                <button type="submit"
+                                    class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-indigo-700 transition-colors">
+                                    Add
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Segments List -->
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Active Segments
+                            </h3>
+                            <div id="segmentsList" class="space-y-2">
+                                <!-- Injected via JS -->
+                                <p class="text-gray-400 text-sm">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Factories Section -->
+                    <div id="contentFactories" class="hidden space-y-6">
+                        <!-- Add Factory -->
+                        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Add / Edit Factory
+                            </h3>
+                            <form id="addFactoryForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                                <input type="hidden" name="factory_id" id="factoryId">
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Factory Name *</label>
+                                    <input type="text" name="name"
+                                        class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        placeholder="Enter factory name..." required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Contact Number 1</label>
+                                    <input type="text" name="contact_info"
+                                        class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        placeholder="Primary contact">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Contact Number 2</label>
+                                    <input type="text" name="contact_2"
+                                        class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        placeholder="Secondary contact">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Contact Number 3</label>
+                                    <input type="text" name="contact_3"
+                                        class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        placeholder="Tertiary contact">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">GST Number</label>
+                                    <input type="text" name="gst_number"
+                                        class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        placeholder="GSTIN">
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Address</label>
+                                    <textarea name="address" rows="3"
+                                        class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        placeholder="Full address..."></textarea>
+                                </div>
+
+                                <div class="md:col-span-2 text-right">
+                                    <button type="submit"
+                                        class="bg-indigo-600 text-white px-6 py-2 rounded text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm">
+                                        Add Factory
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Factories List -->
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Active Factories
+                            </h3>
+                            <div id="factoriesList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Injected via JS -->
+                                <p class="text-gray-400 text-sm">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categories Section -->
+                    <div id="contentCategories" class="hidden space-y-6">
+                        <!-- Add Category -->
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Add / Edit
+                                Category
+                            </h3>
+                            <form id="addCategoryForm" class="flex gap-2 relative">
+                                <input type="hidden" name="category_id" id="categoryId">
+                                <input type="text" name="name"
+                                    class="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                    placeholder="Enter category name..." required>
+                                <button type="submit"
+                                    class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-indigo-700 transition-colors">
+                                    Add
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Categories List -->
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Active Categories
+                            </h3>
+                            <div id="categoriesList" class="space-y-2">
+                                <!-- Injected via JS -->
+                                <p class="text-gray-400 text-sm">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fabrics Section -->
+                    <div id="contentFabrics" class="hidden space-y-6">
+                        <!-- Add Fabric -->
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Add / Edit Fabric
+                            </h3>
+                            <form id="addFabricForm" class="flex gap-2 relative">
+                                <input type="hidden" name="fabric_id" id="fabricId">
+                                <input type="text" name="name"
+                                    class="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                                    placeholder="Enter fabric name..." required>
+                                <button type="submit"
+                                    class="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-indigo-700 transition-colors">
+                                    Add
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Fabrics List -->
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Active Fabrics
+                            </h3>
+                            <div id="fabricsList" class="space-y-2">
+                                <!-- Injected via JS -->
+                                <p class="text-gray-400 text-sm">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        // Simple inline script for master data management
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = {
+                seg: document.getElementById('tabSegments'),
+                fac: document.getElementById('tabFactories'),
+                cat: document.getElementById('tabCategories'),
+                fab: document.getElementById('tabFabrics')
+            };
+            const contents = {
+                seg: document.getElementById('contentSegments'),
+                fac: document.getElementById('contentFactories'),
+                cat: document.getElementById('contentCategories'),
+                fab: document.getElementById('contentFabrics')
+            };
+
+            const switchTab = (mode) => {
+                // Reset all
+                Object.values(tabs).forEach(t => t.className = "flex-1 py-4 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors");
+                Object.values(contents).forEach(c => c.classList.add('hidden'));
+
+                // Active
+                tabs[mode].className = "flex-1 py-4 text-center font-medium text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50 transition-colors";
+                contents[mode].classList.remove('hidden');
+            };
+
+            tabs.seg.onclick = () => switchTab('seg');
+            tabs.fac.onclick = () => switchTab('fac');
+            tabs.cat.onclick = () => switchTab('cat');
+            tabs.fab.onclick = () => switchTab('fab');
+
+            const fetchMaster = async () => {
+                try {
+                    const res = await fetch('api/factory_api.php?action=get_master_data&all=true');
+                    const data = await res.json();
+
+                    if (data.success) {
+                        renderSegments(data.segments);
+                        renderFactories(data.factories);
+                        renderCategories(data.categories || []);
+                        renderFabrics(data.fabrics || []);
+                    }
+                } catch (e) { console.error(e); }
+            };
+
+            window.toggleStatus = async (type, id, currentStatus) => {
+                const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+                const endpoint = type === 'segment' ? 'manage_segment' : (type === 'factory' ? 'manage_factory' : 'manage_category');
+                const idKey = type === 'segment' ? 'segment_id' : (type === 'factory' ? 'factory_id' : 'category_id');
+
+                try {
+                    const res = await fetch(`api/factory_api.php?action=${endpoint}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sub_action: 'toggle_status', [idKey]: id, status: newStatus })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        fetchMaster(); // Refresh list
+                    } else {
+                        alert(data.message || 'Error updating status');
+                        fetchMaster(); // Revert UI
+                    }
+                } catch (e) { console.error(e); alert('Network error'); fetchMaster(); }
+            };
+
+            const renderToggleButton = (type, item) => {
+                const id = type === 'segment' ? item.segment_id : (type === 'factory' ? item.factory_id : item.category_id);
+                const isActive = item.status === 'active';
+                return `
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" ${isActive ? 'checked' : ''} onchange="toggleStatus('${type}', ${id}, '${item.status}')">
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                        <span class="ml-2 text-xs font-medium text-gray-900">${isActive ? 'Active' : 'Inactive'}</span>
+                    </label>
+                `;
+            };
+
+            const renderSegments = (list) => {
+                const con = document.getElementById('segmentsList');
+                con.innerHTML = list.map(s => `
+                    <div class="p-3 bg-white border border-gray-100 rounded shadow-sm flex justify-between items-center text-sm group ${s.status === 'inactive' ? 'opacity-60 grayscale' : ''}">
+                        <span class="font-medium text-gray-700">${s.name}</span>
+                        <div class="flex items-center gap-4">
+                            <button onclick='editSegment(${JSON.stringify(s)})' class="text-gray-400 hover:text-indigo-600 transition-colors p-1" title="Edit">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            ${renderToggleButton('segment', s)}
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            const renderFactories = (list) => {
+                const con = document.getElementById('factoriesList');
+                con.innerHTML = list.map(f => `
+                    <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm text-sm space-y-2 relative group ${f.status === 'inactive' ? 'opacity-60 grayscale' : ''}">
+                        <div class="absolute top-4 right-4 flex items-center gap-2">
+                            <button onclick='editFactory(${JSON.stringify(f)})' class="text-gray-400 hover:text-indigo-600 transition-colors bg-white rounded-full p-2 shadow-sm border border-gray-100" title="Edit">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            ${renderToggleButton('factory', f)}
+                        </div>
+                        <div class="pr-24">
+                            <span class="font-bold text-gray-800 text-base block mb-2">${f.name}</span>
+                            ${f.contact_info ? `<p class="text-gray-600 mb-1"><i class="fas fa-phone mr-2 text-gray-400 w-4"></i>${f.contact_info}</p>` : ''}
+                            ${f.contact_2 ? `<p class="text-gray-600 mb-1"><i class="fas fa-phone mr-2 text-gray-400 w-4"></i>${f.contact_2}</p>` : ''}
+                            ${f.contact_3 ? `<p class="text-gray-600 mb-1"><i class="fas fa-phone mr-2 text-gray-400 w-4"></i>${f.contact_3}</p>` : ''}
+                            ${f.gst_number ? `<p class="text-gray-600 mb-1"><i class="fas fa-file-invoice mr-2 text-gray-400 w-4"></i>${f.gst_number}</p>` : ''}
+                            ${f.address ? `<p class="text-gray-600"><i class="fas fa-map-marker-alt mr-2 text-gray-400 w-4"></i>${f.address}</p>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            const renderCategories = (list) => {
+                const con = document.getElementById('categoriesList');
+                con.innerHTML = list.map(c => `
+                    <div class="p-3 bg-white border border-gray-100 rounded shadow-sm flex justify-between items-center text-sm group ${c.status === 'inactive' ? 'opacity-60 grayscale' : ''}">
+                        <span class="font-medium text-gray-700">${c.name}</span>
+                        <div class="flex items-center gap-4">
+                            <button onclick='editCategory(${JSON.stringify(c)})' class="text-gray-400 hover:text-indigo-600 transition-colors p-1" title="Edit">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            ${renderToggleButton('category', c)}
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            const renderFabrics = (list) => {
+                const con = document.getElementById('fabricsList');
+                con.innerHTML = list.map(f => `
+                    <div class="p-3 bg-white border border-gray-100 rounded shadow-sm flex justify-between items-center text-sm group">
+                        <span class="font-medium text-gray-700">${f.name}</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick='editFabric(${JSON.stringify(f)})' class="text-gray-400 hover:text-indigo-600 transition-colors p-1" title="Edit">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            window.editSegment = (data) => {
+                document.getElementById('segmentId').value = data.segment_id;
+                document.querySelector('#addSegmentForm [name="name"]').value = data.name;
+                const btn = document.querySelector('#addSegmentForm button[type="submit"]');
+                btn.textContent = "Update";
+                // Optionally scroll to form
+                document.getElementById('addSegmentForm').scrollIntoView({ behavior: 'smooth' });
+            };
+
+            window.editFactory = (data) => {
+                document.getElementById('factoryId').value = data.factory_id;
+                const f = document.querySelector('#addFactoryForm');
+                f.querySelector('[name="name"]').value = data.name;
+                f.querySelector('[name="contact_info"]').value = data.contact_info || '';
+                f.querySelector('[name="contact_2"]').value = data.contact_2 || '';
+                f.querySelector('[name="contact_3"]').value = data.contact_3 || '';
+                f.querySelector('[name="gst_number"]').value = data.gst_number || '';
+                f.querySelector('[name="address"]').value = data.address || '';
+
+                const btn = f.querySelector('button[type="submit"]');
+                btn.textContent = "Update Factory";
+                document.getElementById('addFactoryForm').scrollIntoView({ behavior: 'smooth' });
+            };
+
+            window.editCategory = (data) => {
+                document.getElementById('categoryId').value = data.category_id;
+                document.querySelector('#addCategoryForm [name="name"]').value = data.name;
+                const btn = document.querySelector('#addCategoryForm button[type="submit"]');
+                btn.textContent = "Update";
+                document.getElementById('addCategoryForm').scrollIntoView({ behavior: 'smooth' });
+            };
+
+            window.editFabric = (data) => {
+                document.getElementById('fabricId').value = data.fabric_id;
+                document.querySelector('#addFabricForm [name="name"]').value = data.name;
+                const btn = document.querySelector('#addFabricForm button[type="submit"]');
+                btn.textContent = "Update";
+                document.getElementById('addFabricForm').scrollIntoView({ behavior: 'smooth' });
+            };
+
+            const handleForm = async (formId, action) => {
+                document.getElementById(formId).addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    const btn = this.querySelector('button[type="submit"]');
+                    btn.disabled = true;
+                    btn.textContent = "Saving...";
+
+                    const fd = new FormData(this);
+                    const payload = {};
+                    fd.forEach((v, k) => payload[k] = v);
+
+                    // Determine action
+                    if (formId === 'addSegmentForm') {
+                        payload.sub_action = payload.segment_id ? 'update' : 'create';
+                    } else if (formId === 'addFactoryForm') {
+                        payload.sub_action = payload.factory_id ? 'update' : 'create';
+                    } else if (formId === 'addCategoryForm') {
+                        payload.sub_action = payload.category_id ? 'update' : 'create';
+                    } else {
+                        payload.sub_action = payload.fabric_id ? 'update' : 'create';
+                    }
+
+                    try {
+                        const res = await fetch(`api/factory_api.php?action=${action}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.reset();
+                            fetchMaster();
+                            alert('Added successfully!');
+                        } else {
+                            alert(data.message || 'Error saving');
+                        }
+                    } catch (e) { alert('Network error'); console.error(e); }
+
+                    btn.disabled = false;
+                    btn.textContent = formId === 'addSegmentForm' ? "Add" : (formId === 'addFactoryForm' ? "Add Factory" : "Add");
+
+                    // Reset ID
+                    if (formId === 'addSegmentForm') document.getElementById('segmentId').value = '';
+                    else if (formId === 'addFactoryForm') document.getElementById('factoryId').value = '';
+                    else if (formId === 'addCategoryForm') document.getElementById('categoryId').value = '';
+                    else document.getElementById('fabricId').value = '';
+                });
+            };
+
+            handleForm('addSegmentForm', 'manage_segment');
+            handleForm('addFactoryForm', 'manage_factory');
+            handleForm('addCategoryForm', 'manage_category');
+            handleForm('addFabricForm', 'manage_fabric');
+
+            fetchMaster();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
+  <title>Inventory Manager</title>
+  <script src="assets/js/ui.js" defer></script>
+  <script src="assets/js/config.js" defer></script>
+  <script src="assets/js/inventory.js" defer></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/navbar.js" defer></script>
+</head>
+
+<body class="bg-gray-100">
+  <!-- Navbar will be injected here by navbar.js -->
+
+  <div class="container mx-auto p-2 md:p-4 transition-all duration-300">
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6 glass-card">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-xl md:text-2xl font-bold text-gray-800">Inventory Management</h1>
+        <!-- User info is now in sidebar, but we can keep a simple status or action here if needed -->
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
+        <!-- Total Products -->
+        <div id="statTotal"
+          class="stat-card bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100">
+          <div>
+            <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">Total SKUs</p>
+            <h3 class="text-lg md:text-3xl font-bold text-gray-800" id="totalProducts">0</h3>
+          </div>
+          <div
+            class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <i class="fas fa-boxes text-sm md:text-xl"></i>
+          </div>
+        </div>
+
+        <!-- Active Inventory (Total with > 0 stock) -->
+        <div id="statActiveStock"
+          class="stat-card bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100">
+          <div>
+            <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">InStock SKU</p>
+            <h3 class="text-lg md:text-3xl font-bold text-green-600" id="activeStockCount">0</h3>
+          </div>
+          <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+            <i class="fas fa-check-circle text-sm md:text-xl"></i>
+          </div>
+        </div>
+
+        <!-- Low Stock -->
+        <div id="statLowStock"
+          class="stat-card bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100">
+          <div>
+            <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">Low Stock</p>
+            <h3 class="text-lg md:text-3xl font-bold text-amber-600" id="lowStockCount">0</h3>
+          </div>
+          <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+            <i class="fas fa-exclamation-triangle text-sm md:text-xl"></i>
+          </div>
+        </div>
+
+        <!-- Out of Stock -->
+        <div id="statZeroStock"
+          class="stat-card bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100">
+          <div>
+            <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">Out of Stock</p>
+            <h3 class="text-lg md:text-3xl font-bold text-red-600" id="zeroStockCount">0</h3>
+          </div>
+          <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+            <i class="fas fa-times-circle text-sm md:text-xl"></i>
+          </div>
+        </div>
+        <div id="statTotalQty"
+          class="bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100 hidden"
+          onclick="openCategoryQtyModal()">
+          <div>
+            <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">Total Quantity</p>
+            <h3 class="text-lg md:text-3xl font-bold text-gray-800" id="totalQtyCount">-</h3>
+          </div>
+          <div
+            class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+            <i class="fas fa-boxes text-sm md:text-xl"></i>
+          </div>
+        </div>
+
+        <div id="statTotalValue"
+          class="bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100 hidden"
+          onclick="openCategoryValueModal()">
+          <div>
+            <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">Inventory Value</p>
+            <h3 class="text-lg md:text-3xl font-bold text-gray-800" id="totalValueCount">-</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form id="productForm" class="bg-white p-3 md:p-6 rounded-xl shadow-sm mb-6 glass-card"
+      data-role="stocker,admin,sub-admin,production">
+      <div class="flex justify-between items-center cursor-pointer" onclick="toggleAddProduct()">
+        <h2 id="formTitle" class="text-xl font-bold text-gray-800">Add Product</h2>
+        <button type="button" id="toggleProductFormBtn"
+          class="text-indigo-600 hover:text-indigo-800 transition-colors focus:outline-none">
+          <i class="fas fa-plus-circle text-2xl"></i>
+        </button>
+      </div>
+
+      <div id="addProductContent" class="hidden transition-all duration-300 ease-in-out mt-2">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-2 mb-4">
+          <div class="lg:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Product Details</label>
+            <div class="flex flex-col md:flex-row gap-4">
+              <input type="text" id="sku" placeholder="SKU / Product Name"
+                class="flex-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                required />
+              <select id="category" required
+                class="p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white">
+                <option value="" disabled selected>Select Category</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Size Distribution</label>
+            <div class="grid grid-cols-6 gap-3">
+              <div>
+                <label for="s" class="text-xs text-gray-500 text-center block mb-1">S</label>
+                <input type="text" id="s" placeholder="0"
+                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div>
+                <label for="m" class="text-xs text-gray-500 text-center block mb-1">M</label>
+                <input type="text" id="m" placeholder="0"
+                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div>
+                <label for="l" class="text-xs text-gray-500 text-center block mb-1">L</label>
+                <input type="text" id="l" placeholder="0"
+                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div>
+                <label for="xl" class="text-xs text-gray-500 text-center block mb-1">XL</label>
+                <input type="text" id="xl" placeholder="0"
+                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div>
+                <label for="xxl" class="text-xs text-gray-500 text-center block mb-1">2XL</label>
+                <input type="text" id="xxl" placeholder="0"
+                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div>
+                <label for="xxxl" class="text-xs text-gray-500 text-center block mb-1">3XL</label>
+                <input type="text" id="xxxl" placeholder="0"
+                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <div
+              class="border border-gray-300 rounded-lg p-2 focus-within:ring-2 focus-within:ring-indigo-500 bg-white transition-all">
+              <div id="rackTags" class="flex flex-wrap gap-2 mb-1 empty:hidden"></div>
+              <input type="text" id="rackInput" placeholder="Type & Enter (e.g. R1_B2)"
+                class="w-full outline-none text-sm p-1" list="rackList" />
+            </div>
+            <input type="hidden" id="rack_location" />
+            <datalist id="rackList"></datalist>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+            <input type="file" id="imageUpload" accept="image/*"
+              class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-1" />
+
+            <img id="imagePreview" src="" alt="Preview"
+              class="hidden w-20 h-20 object-cover rounded border border-gray-200 shadow-sm" />
+          </div>
+
+
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:col-span-2">
+            <div data-role="admin">
+              <label class="block text-xs text-gray-500 mb-1">Manufacture Cost</label>
+              <input type="text" id="cost_price" placeholder="Cost" readonly
+                class="w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 focus:outline-none" />
+            </div>
+            <div data-role="admin">
+              <label class="block text-xs text-gray-500 mb-1">Purchase Cost</label>
+              <input type="number" step="0.01" id="purchase_cost" placeholder="0.00"
+                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Min Stock Alert</label>
+              <input type="number" id="min_stock_alert" value="10"
+                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+
+            <div data-role="admin">
+              <label class="block text-xs text-gray-500 mb-1">Status</label>
+              <select id="status"
+                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                <option value="active">Active</option>
+                <option value="discontinued">Discontinued</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Live Links Section -->
+          <div class="mt-0 border-t border-gray-100 pt-2 lg:col-span-2">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Live Product Links</h3>
+            <div>
+              <div
+                class="border border-gray-300 rounded-lg p-2 focus-within:ring-2 focus-within:ring-indigo-500 bg-white transition-all">
+                <div id="linkTags" class="flex flex-wrap gap-2 mb-1 empty:hidden"></div>
+                <input type="url" id="linkInput" placeholder="Paste URL & Enter"
+                  class="w-full outline-none text-sm p-1" />
+              </div>
+              <input type="hidden" id="live_links" name="live_links" />
+              <p class="text-xs text-gray-400 mt-1">Paste a URL and press Enter to add.</p>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="flex justify-end gap-4">
+          <button type="button" id="cancelEdit"
+            class="hidden text-gray-500 hover:text-gray-700 font-medium transition-colors">
+            Cancel
+          </button>
+          <button type="submit"
+            class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow">
+            <i class="fas fa-save mr-2"></i> Save
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <div class="bg-white rounded-xl shadow-sm p-3 md:p-6 mb-6 glass-card">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800">Inventory List</h2>
+
+        <!-- Filter Section: Mobile optimized -->
+        <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+          <!-- Row 1 on Mobile: Search + Rack -->
+          <div class="flex gap-3 w-full md:w-auto">
+            <div class="relative flex-grow md:flex-grow-0">
+              <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+              <input type="text" id="searchInput" placeholder="Search SKU..."
+                class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <input type="text" id="rackFilter" placeholder="Rack..."
+              class="w-24 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+
+          <!-- Row 2 on Mobile: Category + Export -->
+          <div class="flex flex-wrap md:flex-nowrap gap-3 w-full md:w-auto items-center">
+            <select id="categoryFilter"
+              class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white flex-grow md:flex-grow-0">
+              <option value="all">All Categories</option>
+            </select>
+            <!-- Sort -->
+            <!-- Sort & Export Group -->
+            <div class="flex gap-2 items-center flex-grow md:flex-grow-0">
+              <select id="sortFilter"
+                class="p-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-gray-700 flex-grow md:flex-grow-0">
+                <option value="sku">Sort by SKU</option>
+                <option value="total_desc">Stock: High to Low</option>
+                <option value="total_asc">Stock: Low to High</option>
+                <option value="value_desc" data-role="admin">Total Value: High to Low</option>
+                <option value="value_asc" data-role="admin">Total Value: Low to High</option>
+                <option value="updated">Last Updated</option>
+              </select>
+              <!-- Export -->
+              <select id="exportDropdown"
+                class="p-2 border border-green-600 bg-green-600 text-white rounded-lg focus:ring-2 focus:ring-green-500 outline-none cursor-pointer w-auto">
+                <option value="" class="bg-white text-gray-700">Export</option>
+                <option value="visible" class="bg-white text-gray-700">Visible</option>
+                <option value="all" class="bg-white text-gray-700">All</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="inventoryTableContainer" class="overflow-hidden rounded-lg border border-gray-200 relative">
+        <div class="overflow-auto max-h-[75vh] relative">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col"
+                  class="sticky top-0 left-0 z-20 bg-gray-50 px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  SKU</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Links</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Rack</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  S</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  M</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  L</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  XL</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  2XL</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  3XL</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total</th>
+                <th scope="col" data-role="admin,production"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Manufacture Cost</th>
+                <th scope="col" data-role="admin,production"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Purchase Cost</th>
+                <th scope="col" data-role="admin"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total Value</th>
+
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Image</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Updated</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  By</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  History</th>
+                <th scope="col" data-role="admin,sub-admin,stocker,production"
+                  class="sticky top-0 z-10 bg-gray-50 px-2 py-2 md:px-6 md:py-3 text-right text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-4">
+        <div class="text-sm text-gray-500">
+          Showing <span id="showing-from" class="font-medium">0</span> to <span id="showing-to"
+            class="font-medium">0</span> of <span id="total-items" class="font-medium">0</span> items
+        </div>
+        <div class="flex space-x-2">
+          <button id="prev-page"
+            class="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div id="pagination-numbers" class="flex space-x-1"></div>
+          <button id="next-page"
+            class="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="imageModal"
+    class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+    <div class="relative">
+      <img id="modalImage" class="max-h-[85vh] rounded-lg shadow-2xl" />
+      <button id="closeModal"
+        class="absolute -top-10 right-0 text-white text-2xl hover:text-gray-300 transition-colors">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div id="historyModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4">
+      <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-gray-800" id="historyModalTitle">History</h3>
+        <button id="closeHistoryModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div id="historyList" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <!-- History items injected here -->
+      </div>
+      <div id="historyLoading" class="p-2 text-center text-gray-400 hidden">
+        <i class="fas fa-spinner fa-spin"></i> Loading...
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Quantity Modal -->
+  <div id="categoryQtyModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col m-4">
+      <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-gray-800">Category-wise Quantity</h3>
+        <button onclick="document.getElementById('categoryQtyModal').classList.add('hidden')"
+          class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4">
+        <table class="w-full text-sm text-left text-gray-500">
+          <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">Category</th>
+              <th class="px-4 py-2 text-right">Quantity</th>
+            </tr>
+          </thead>
+          <tbody id="categoryQtyList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Value Modal -->
+  <div id="categoryValueModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col m-4">
+      <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-gray-800">Category-wise Value</h3>
+        <button onclick="document.getElementById('categoryValueModal').classList.add('hidden')"
+          class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4">
+        <table class="w-full text-sm text-left text-gray-500">
+          <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">Category</th>
+              <th class="px-4 py-2 text-right">Value (?)</th>
+            </tr>
+          </thead>
+          <tbody id="categoryValueList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

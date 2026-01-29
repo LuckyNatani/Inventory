@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
+    <title>Factory Rates | Inventory Manager</title>
+    <script src="assets/js/ui.js" defer></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/navbar.js" defer></script>
+    <script src="assets/js/config.js" defer></script>
+    <script src="assets/js/factory_rates.js" defer></script>
+</head>
+
+<body class="bg-gray-100">
+    <!-- Navbar injected by navbar.js -->
+
+    <div class="container mx-auto p-2 md:p-4 transition-all duration-300">
+        <div class="bg-white rounded-xl shadow-sm p-3 md:p-6 mb-4 md:mb-6 glass-card">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8">
+                <div>
+                    <h1 class="text-xl md:text-3xl font-bold text-slate-800 tracking-tight">Factory Rates</h1>
+                    <p class="text-sm text-slate-500 font-medium mt-1">Manage pricing and production logs</p>
+                </div>
+                <div class="flex w-full md:w-auto gap-2" data-role="admin,production">
+                    <a href="factory_reports.html"
+                        class="flex-1 md:flex-none text-center text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 font-bold rounded-xl text-sm px-4 py-2.5 transition-all shadow-sm border border-indigo-100 active:scale-95">
+                        <i class="fas fa-chart-line mr-2"></i>Reports
+                    </a>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="mb-4 md:mb-8">
+                <div class="relative max-w-full md:max-w-xl mx-auto">
+                    <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="skuSearch" placeholder="Search SKU to manage..."
+                        class="modern-input w-full pl-12 pr-4 py-4 rounded-2xl outline-none text-base md:text-lg shadow-sm transition-all placeholder:text-slate-400 placeholder:font-medium"
+                        autofocus />
+                    <!-- Autocomplete Dropdown -->
+                    <div id="searchResults"
+                        class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 hidden max-h-60 overflow-y-auto w-full animate-fade-in-up">
+                        <!-- Results injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Default View: Recent or Instructions -->
+            <div id="initialView" class="text-center py-16 animate-fade-in">
+                <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-search-dollar text-4xl text-indigo-500 animate-pulse"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-700 mb-2">Ready to work?</h3>
+                <p class="text-slate-500 max-w-xs mx-auto">Search for an SKU above to view history or log new factory
+                    rates.</p>
+            </div>
+
+            <!-- Tabs (Segmented Control) -->
+            <div id="skuTabs" class="hidden mb-4 md:mb-6">
+                <ul class="flex flex-wrap text-xs md:text-sm font-medium text-center bg-gray-100 p-1.5 rounded-xl"
+                    id="tabList" role="tablist">
+                    <li class="flex-1 mr-0" role="presentation">
+                        <button
+                            class="w-full inline-block py-2.5 px-2 md:px-4 rounded-lg active-tab bg-slate-700 !text-white shadow-md transition-all duration-200 whitespace-nowrap"
+                            id="rates-tab" data-tabs-target="#skuRateView" type="button" role="tab"
+                            aria-controls="rates" aria-selected="true">Factory Rates</button>
+                    </li>
+                    <li class="flex-1 mr-0" role="presentation">
+                        <button
+                            class="w-full inline-block py-2.5 px-2 md:px-4 rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-200 whitespace-nowrap"
+                            id="costing-tab" data-tabs-target="#skuCostingView" type="button" role="tab"
+                            aria-controls="costing" aria-selected="false">SKU Costing</button>
+                    </li>
+                    <li class="flex-1 mr-0" role="presentation">
+                        <button
+                            class="w-full inline-block py-2.5 px-2 md:px-4 rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-200 whitespace-nowrap"
+                            id="notes-tab" data-tabs-target="#skuNotesView" type="button" role="tab"
+                            aria-controls="notes" aria-selected="false">Notes</button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- SKU Details & Rate Actions (Hidden initially) -->
+            <div id="skuRateView" class="hidden animate-fade-in-up tab-content">
+
+                <!-- SKU Header Card -->
+                <div class="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm mb-4 md:mb-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">SKU</p>
+                            <h2 id="currentSku"
+                                class="text-2xl md:text-3xl font-extra-bold text-gray-800 tracking-tight">--</h2>
+                            <span class="text-xs text-gray-400">Last updated: <span id="skuLastUpdated">--</span></span>
+                            </p>
+                            <div class="mt-3">
+                                <button id="logRateBtn"
+                                    class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none transition-colors shadow-sm"
+                                    data-role="production,admin">
+                                    <i class="fas fa-plus mr-1"></i> Add Rate
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="inline-block bg-indigo-50 rounded-lg p-3 text-center min-w-[100px]">
+                                <p class="text-xs text-indigo-400 uppercase font-bold">Cost Price</p>
+                                <p id="skuCostPrice" class="text-xl md:text-2xl font-bold text-indigo-700">0</p>
+                            </div>
+                            <br>
+                            <img id="skuImage"
+                                class="hidden w-16 h-16 object-cover rounded-lg border border-gray-200 mt-2 cursor-pointer hover:opacity-80 transition-opacity mx-auto"
+                                alt="SKU Image" onclick="openImageModal(this.src)">
+                            <div id="skuLinks" class="flex items-center justify-end gap-2 mt-2 flex-wrap"></div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory Breakdown -->
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2 md:mb-3">Inventory
+                            Breakdown</p>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-9 gap-2" id="inventoryGrid">
+                            <!-- Injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Latest Rates Summary Cards -->
+                <div id="latestRatesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <!-- Cards injected here -->
+                </div>
+
+                <!-- Filter Toolbar -->
+                <!-- Filter Toolbar merged into History Card -->
+
+                <!-- History Table -->
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <div
+                        class="p-4 border-b border-gray-100 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                        <div class="flex flex-row items-center gap-4 w-full xl:w-auto">
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Price
+                                History</h3>
+
+                            <button id="exportCsvBtn"
+                                class="text-gray-700 bg-gray-50 border border-gray-300 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-xs px-3 py-1.5 hover:bg-gray-100 focus:outline-none transition-colors">
+                                <i class="fas fa-file-export mr-1"></i> Export
+                            </button>
+                        </div>
+
+                        <!-- Integrated Filters -->
+                        <div class="grid grid-cols-2 md:flex gap-2 w-full xl:w-auto items-center">
+                            <select id="filterSegment"
+                                class="bg-gray-50 border border-gray-300 text-gray-700 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 outline-none col-span-1">
+                                <option value="">All segments</option>
+                            </select>
+                            <select id="filterFactory"
+                                class="bg-gray-50 border border-gray-300 text-gray-700 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 outline-none col-span-1">
+                                <option value="">All factories</option>
+                            </select>
+                            <input type="text" id="filterDateStart" placeholder="From Date" onfocus="(this.type='date')"
+                                onblur="(this.type='text')"
+                                class="bg-gray-50 border border-gray-300 text-gray-700 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 outline-none col-span-1 border-gray-300">
+                            <input type="text" id="filterDateEnd" placeholder="To Date" onfocus="(this.type='date')"
+                                onblur="(this.type='text')"
+                                class="bg-gray-50 border border-gray-300 text-gray-700 text-xs rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 outline-none col-span-1">
+
+                            <label
+                                class="flex items-center text-xs text-gray-600 cursor-pointer select-none bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-100 transition-colors h-full col-span-1 md:w-auto">
+                                <input type="checkbox" id="showVoided"
+                                    class="mr-1.5 rounded text-indigo-600 focus:ring-indigo-500"> Cancelled
+                            </label>
+
+                            <button id="clearFiltersBtn"
+                                class="text-red-500 bg-red-50 border border-red-200 focus:ring-4 focus:ring-red-100 font-medium rounded-lg text-xs px-3 py-1.5 hover:bg-red-100 focus:outline-none transition-colors col-span-1 md:w-auto">
+                                <i class="fas fa-times mr-1"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                        Date/Time</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                        Segment</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                        Factory</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                        Price</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                        Note</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                        Created By</th>
+                                    <th
+                                        class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                        Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination -->
+                    <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2"
+                        id="historyPagination">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SKU Costing View -->
+            <div id="skuCostingView" class="hidden animate-fade-in-up tab-content">
+                <div class="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Costing Breakdown</h3>
+                    <form id="costingForm" class="space-y-3">
+
+                        <!-- Top + Bottom (Combined) -->
+                        <details class="group bg-gray-50 rounded-lg border border-indigo-100 overflow-hidden"
+                            id="detailsTopBottom">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-indigo-700">Top + Bottom (Combined)</span>
+                                    <span class="text-sm font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded"
+                                        id="summary_top_bottom_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-indigo-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-indigo-100 grid grid-cols-6 md:grid-cols-5 gap-2">
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Fabric Name</label>
+                                    <select name="top_bottom_fabric"
+                                        class="fabric-dropdown w-full p-2 border border-blue-300 rounded text-sm bg-white">
+                                        <option value="">Select Fabric...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Cut</label>
+                                    <input type="number" step="0.01" name="top_bottom_cut"
+                                        class="cost-input w-full p-2 border border-blue-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="top_bottom_rate"
+                                        class="cost-input w-full p-2 border border-blue-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Shortage %</label>
+                                    <input type="number" step="0.01" name="top_bottom_shortage"
+                                        class="cost-input w-full p-2 border border-blue-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="top_bottom_total"
+                                        class="w-full p-2 border border-blue-200 bg-blue-100 rounded text-sm font-bold text-blue-800"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Top -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden"
+                            id="detailsTop">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Top</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_top_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-6 md:grid-cols-5 gap-2">
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Fabric Name</label>
+                                    <select name="top_fabric"
+                                        class="fabric-dropdown w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                        <option value="">Select Fabric...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Cut</label>
+                                    <input type="number" step="0.01" name="top_cut"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="top_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Shortage %</label>
+                                    <input type="number" step="0.01" name="top_shortage"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="top_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Bottom -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden"
+                            id="detailsBottom">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Bottom</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_bottom_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-6 md:grid-cols-5 gap-2">
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Fabric Name</label>
+                                    <select name="bottom_fabric"
+                                        class="fabric-dropdown w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                        <option value="">Select Fabric...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Cut</label>
+                                    <input type="number" step="0.01" name="bottom_cut"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="bottom_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Shortage %</label>
+                                    <input type="number" step="0.01" name="bottom_shortage"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="bottom_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Digital Print -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Digital print</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_digital_print_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-6 md:grid-cols-5 gap-2">
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Fabric Name</label>
+                                    <select name="digital_print_fabric"
+                                        class="fabric-dropdown w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                        <option value="">Select Fabric...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Cut</label>
+                                    <input type="number" step="0.01" name="digital_print_cut"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="digital_print_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Shortage %</label>
+                                    <input type="number" step="0.01" name="digital_print_shortage"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="digital_print_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Dupatta -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Dupatta</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_dupatta_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-6 md:grid-cols-5 gap-2">
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Fabric Name</label>
+                                    <select name="dupatta_fabric"
+                                        class="fabric-dropdown w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                        <option value="">Select Fabric...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Cut</label>
+                                    <input type="number" step="0.01" name="dupatta_cut"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="dupatta_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Shortage %</label>
+                                    <input type="number" step="0.01" name="dupatta_shortage"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="dupatta_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Digital Print (Dupatta) -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Digital Print (Dupatta)</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_digital_print_dupatta_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-6 md:grid-cols-5 gap-2">
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Fabric Name</label>
+                                    <select name="digital_print_dupatta_fabric"
+                                        class="fabric-dropdown w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                        <option value="">Select Fabric...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Cut</label>
+                                    <input type="number" step="0.01" name="digital_print_dupatta_cut"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="digital_print_dupatta_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Shortage %</label>
+                                    <input type="number" step="0.01" name="digital_print_dupatta_shortage"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="digital_print_dupatta_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Astar -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Astar</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_astar_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-6 md:grid-cols-5 gap-2">
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Fabric Name</label>
+                                    <select name="astar_fabric"
+                                        class="fabric-dropdown w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                        <option value="">Select Fabric...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Cut</label>
+                                    <input type="number" step="0.01" name="astar_cut"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="astar_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Shortage %</label>
+                                    <input type="number" step="0.01" name="astar_shortage"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="astar_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Embroidery -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Embroidery</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_embroidery_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-6 md:grid-cols-5 gap-2">
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Fabric Name</label>
+                                    <select name="embroidery_fabric"
+                                        class="fabric-dropdown w-full p-2 border border-gray-300 rounded text-sm bg-white">
+                                        <option value="">Select Fabric...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Cut</label>
+                                    <input type="number" step="0.01" name="embroidery_cut"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="embroidery_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Shortage %</label>
+                                    <input type="number" step="0.01" name="embroidery_shortage"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="embroidery_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Stitching -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Stitching</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_stitching_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="stitching_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Markup %</label>
+                                    <input type="number" step="0.01" name="stitching_markup"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="stitching_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Dying -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Dying</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_dying_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="dying_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Markup %</label>
+                                    <input type="number" step="0.01" name="dying_markup"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="dying_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Knit -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Khatli</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_knit_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="knit_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Markup %</label>
+                                    <input type="number" step="0.01" name="knit_markup"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="knit_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Press -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Press</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_press_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Rate</label>
+                                    <input type="number" step="0.01" name="press_rate"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Markup %</label>
+                                    <input type="number" step="0.01" name="press_markup"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Total</label>
+                                    <input type="number" step="0.01" name="press_total"
+                                        class="w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-700"
+                                        readonly>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Miscellaneous -->
+                        <details class="group bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                            <summary
+                                class="flex justify-between items-center p-4 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-gray-700">Others</span>
+                                    <span class="text-sm font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded"
+                                        id="summary_misc_total">0.00</span>
+                                </div>
+                                <span class="transition-transform group-open:rotate-180"><i
+                                        class="fas fa-chevron-down text-gray-400"></i></span>
+                            </summary>
+                            <div class="p-4 border-t border-gray-200 grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Markup %</label>
+                                    <input type="number" step="0.01" name="final_markup"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm"
+                                        placeholder="%" value="7">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Operational</label>
+                                    <input type="number" step="0.01" name="operational_cost"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500">Extra</label>
+                                    <input type="number" step="0.01" name="extra_cost"
+                                        class="cost-input w-full p-2 border border-gray-300 rounded text-sm">
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Grand Total -->
+                        <div
+                            class="mt-6 flex justify-end items-center gap-4 border-t pt-2 sticky bottom-0 z-10 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] rounded-b-xl pb-2 px-4 -mx-4 -mb-4">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500 font-bold uppercase">Grand Total</p>
+                                <input type="number" step="1" name="total_cost" id="grandTotal"
+                                    class="text-2xl md:text-3xl font-bold text-indigo-600 bg-transparent border-none text-center focus:ring-0 w-48"
+                                    readonly value="0">
+                            </div>
+                            <button type="button" id="saveCostingBtn"
+                                class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:bg-green-700 transition-colors"
+                                data-role="admin,production">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- SKU Notes View -->
+        <div id="skuNotesView" class="hidden animate-fade-in-up tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Add Note Column -->
+                <div class="md:col-span-1">
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm sticky top-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Add Note</h3>
+                        <form id="addNoteForm">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Note Content</label>
+                                <textarea name="note_content" id="noteContent" rows="4"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                    placeholder="Enter important details about this SKU..."></textarea>
+                            </div>
+                            <button type="submit"
+                                class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg font-bold hover:bg-indigo-700 transition-colors">
+                                Add Note
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Notes List Column -->
+                <div class="md:col-span-2">
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Note History</h3>
+                        <div id="notesList" class="space-y-4">
+                            <!-- Notes will take place here -->
+                            <p class="text-center text-gray-400 py-8">Loading notes...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Log Rate Modal -->
+    <div id="logRateModal"
+        class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden animate-fade-in-up">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Log Factory Rate</h3>
+                <button id="closeLogModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-500 mb-1">SKU</p>
+                <p id="modalSkuDisplay" class="text-lg font-bold text-indigo-600 mb-4">--</p>
+
+                <form id="logRateForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Segment</label>
+                        <div class="flex gap-2">
+                            <select id="logSegment"
+                                class="flex-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                required>
+                                <option value="">Select Segment...</option>
+                            </select>
+                            <button type="button"
+                                class="bg-indigo-50 text-indigo-600 px-3 rounded-lg hover:bg-indigo-100"
+                                id="addSegmentLink" title="Create New"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Factory</label>
+                        <div class="flex gap-2">
+                            <select id="logFactory"
+                                class="flex-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                required>
+                                <option value="">Select Factory...</option>
+                            </select>
+                            <button type="button"
+                                class="bg-indigo-50 text-indigo-600 px-3 rounded-lg hover:bg-indigo-100"
+                                id="addFactoryLink" title="Create New"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Price (?)</label>
+                        <input type="number" step="0.01" min="0" id="logPrice"
+                            class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="0.00" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Note</label>
+                        <textarea id="logNote" rows="2"
+                            class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="Optional comments"></textarea>
+                    </div>
+                    <div class="pt-4 flex justify-end">
+                        <button type="submit"
+                            class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg hover:bg-indigo-700 font-medium shadow-md">
+                            Save Rate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Master Data Create Modal (Generic) -->
+    <div id="createMasterModal"
+        class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center hidden z-[60] backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-96 p-6 animate-fade-in-up">
+            <h4 id="createMasterTitle" class="text-lg font-bold mb-4 text-gray-800">Add New Item</h4>
+            <form id="createMasterForm">
+                <input type="hidden" id="createMasterType">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input type="text" id="createMasterName"
+                        class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        required>
+                </div>
+                <div class="mb-4 hidden" id="contactInfoGroup">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contact Info</label>
+                    <input type="text" id="createMasterContact"
+                        class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="closeMasterModal"
+                        class="px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Create</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Void Confirmation Modal -->
+    <div id="voidConfirmModal"
+        class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center hidden z-[60] backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-96 p-6 animate-fade-in-up">
+            <h4 class="text-lg font-bold mb-2 text-red-600">Cancel Entry</h4>
+            <p class="text-sm text-gray-600 mb-4">This will invalidate the rate record. Please provide a reason.</p>
+            <textarea id="voidConfirmReason" rows="3"
+                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none mb-4"
+                placeholder="Reason (Required)" required></textarea>
+            <div class="flex justify-end gap-2">
+                <button id="cancelVoidBtn" class="px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                <button id="doVoidBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Confirm
+                    Void</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imageModal"
+        class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+        <div class="relative">
+            <img id="modalImage" class="max-h-[85vh] rounded-lg shadow-2xl" />
+            <button id="closeModal"
+                class="absolute -top-10 right-0 text-white text-2xl hover:text-gray-300 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+</body>
+
+</html>

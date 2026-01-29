@@ -1,0 +1,810 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
+  <title>Analytics Dashboard - Inventory</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="assets/js/ui.js" defer></script>
+  <script src="assets/js/navbar.js" defer></script>
+</head>
+
+<body class="bg-gray-100">
+  <!-- Navbar injected by navbar.js -->
+
+  <div class="container mx-auto p-2 md:p-4 transition-all duration-300">
+    <!-- Header & Filters -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-8 gap-4">
+      <div>
+        <h1 class="text-lg md:text-3xl font-bold text-gray-800">Analytics Dashboard</h1>
+        <p class="text-xs md:text-base text-gray-500">Overview of order performance and trends</p>
+      </div>
+      <div
+        class="bg-white p-1 rounded-lg shadow-sm border border-gray-200 flex overflow-x-auto no-scrollbar max-w-full">
+        <button onclick="setRange('today')" id="btn-today"
+          class="px-3 py-1.5 md:px-4 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors bg-indigo-100 text-indigo-700 whitespace-nowrap">Today</button>
+        <button onclick="setRange('yesterday')" id="btn-yesterday"
+          class="px-3 py-1.5 md:px-4 md:py-2 rounded-md text-xs md:text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap">Yesterday</button>
+        <button onclick="setRange('7days')" id="btn-7days"
+          class="px-3 py-1.5 md:px-4 md:py-2 rounded-md text-xs md:text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap">Last
+          7</button>
+        <button onclick="setRange('custom')" id="btn-custom"
+          class="px-3 py-1.5 md:px-4 md:py-2 rounded-md text-xs md:text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap">Custom</button>
+      </div>
+    </div>
+
+    <!-- Custom Date Picker -->
+    <div id="customDateContainer"
+      class="hidden bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 mb-4 md:mb-6 flex flex-wrap gap-3 md:gap-4 items-end animate-fade-in">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Start Date</label>
+        <input type="date" id="startDate"
+          class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">End Date</label>
+        <input type="date" id="endDate"
+          class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+      </div>
+      <button onclick="applyCustomDate()"
+        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors h-[42px]">
+        Apply Filter
+      </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+      <div
+        class="bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 glass-card cursor-pointer hover:shadow-md transition-shadow"
+        onclick="openItemDetailsModal('total')">
+        <div class="flex flex-col-reverse md:flex-row justify-between items-start md:items-center">
+          <div>
+            <p class="text-xs md:text-sm font-medium text-gray-500">Total Orders</p>
+            <h3 class="text-xl md:text-3xl font-bold text-gray-800 mt-1 md:mt-2" id="totalOrders">0</h3>
+          </div>
+          <div class="p-2 md:p-3 bg-blue-50 rounded-lg text-blue-600 mb-2 md:mb-0 self-start md:self-auto">
+            <i class="fas fa-shopping-cart text-base md:text-xl"></i>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 glass-card cursor-pointer hover:shadow-md transition-shadow"
+        onclick="openItemDetailsModal('pending')">
+        <div class="flex flex-col-reverse md:flex-row justify-between items-start md:items-center">
+          <div>
+            <p class="text-xs md:text-sm font-medium text-gray-500">Pending</p>
+            <h3 class="text-xl md:text-3xl font-bold text-gray-800 mt-1 md:mt-2" id="pendingOrders">0</h3>
+            <div id="pendingBreakdown" class="text-[10px] md:text-xs text-gray-500 mt-1 font-medium hidden md:block">
+            </div>
+          </div>
+          <div class="p-2 md:p-3 bg-yellow-50 rounded-lg text-yellow-600 mb-2 md:mb-0 self-start md:self-auto">
+            <i class="fas fa-clock text-base md:text-xl"></i>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 glass-card cursor-pointer hover:shadow-md transition-shadow"
+        onclick="openItemDetailsModal('picked')">
+        <div class="flex flex-col-reverse md:flex-row justify-between items-start md:items-center">
+          <div>
+            <p class="text-xs md:text-sm font-medium text-gray-500">Completed</p>
+            <h3 class="text-xl md:text-3xl font-bold text-gray-800 mt-1 md:mt-2" id="pickedOrders">0</h3>
+          </div>
+          <div class="p-2 md:p-3 bg-green-50 rounded-lg text-green-600 mb-2 md:mb-0 self-start md:self-auto">
+            <i class="fas fa-check-circle text-base md:text-xl"></i>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 glass-card cursor-pointer hover:shadow-md transition-shadow"
+        onclick="openSubstitutionsModal()">
+        <div class="flex flex-col-reverse md:flex-row justify-between items-start md:items-center">
+          <div>
+            <p class="text-xs md:text-sm font-medium text-gray-500">Substituted</p>
+            <h3 class="text-xl md:text-3xl font-bold text-gray-800 mt-1 md:mt-2" id="substitutions">0</h3>
+          </div>
+          <div class="p-2 md:p-3 bg-purple-50 rounded-lg text-purple-600 mb-2 md:mb-0 self-start md:self-auto">
+            <i class="fas fa-exchange-alt text-base md:text-xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item Details Modal -->
+    <div id="itemDetailsModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+      <div
+        class="bg-white rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-800" id="itemDetailsTitle">Item Details</h3>
+          <button onclick="closeItemDetailsModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+
+        <div class="overflow-hidden rounded-lg border border-gray-200">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Picklist #
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty
+                    (Req/Pick)</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody id="itemDetailsTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="subHistoryModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+      <div
+        class="bg-white rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-800">Substitution History</h3>
+          <button onclick="closeSubHistoryModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+
+        <div class="overflow-hidden rounded-lg border border-gray-200">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Original
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Substitute
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">By</th>
+                </tr>
+              </thead>
+              <tbody id="subHistoryTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+      <!-- Order Trend -->
+      <div class="lg:col-span-2 bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100">
+        <h3 class="text-base md:text-lg font-bold text-gray-800 mb-4">Order Trend</h3>
+        <div class="h-56 md:h-64">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+      <!-- Platform Distribution -->
+      <div class="bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100">
+        <h3 class="text-base md:text-lg font-bold text-gray-800 mb-4">Platform Share</h3>
+        <div class="h-56 md:h-64 flex justify-center">
+          <canvas id="platformChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKU Analysis -->
+    <div class="bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 mb-8">
+      <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-3 md:gap-4">
+        <h3 class="text-base md:text-lg font-bold text-gray-800 w-full md:w-auto">SKU Analysis</h3>
+        <div class="flex gap-2 w-full md:w-auto">
+          <div class="relative w-full md:w-64">
+            <input type="text" id="skuSearch" placeholder="Enter SKU..." autocomplete="off"
+              class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-full text-sm">
+            <div id="skuSuggestions"
+              class="absolute z-10 w-full bg-white mt-1 border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
+            </div>
+          </div>
+          <button onclick="searchSku()"
+            class="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
+            Search
+          </button>
+        </div>
+      </div>
+
+      <div id="skuStats" class="hidden animate-fade-in">
+        <!-- Header: SKU Name & Today's Count -->
+        <div
+          class="flex flex-col md:flex-row items-center justify-between bg-indigo-50 p-4 md:p-6 rounded-xl mb-6 md:mb-8 border border-indigo-100">
+          <div class="w-full md:w-auto text-center md:text-left mb-4 md:mb-0">
+            <p class="text-xs md:text-sm text-indigo-600 font-semibold uppercase tracking-wide">Analysis For</p>
+            <h2 class="text-xl md:text-3xl font-bold text-gray-800 mt-1" id="skuNameDisplay">SKU-123</h2>
+          </div>
+          <div class="text-center md:text-right w-full md:w-auto">
+            <p class="text-xs md:text-sm text-gray-500 font-medium">Today's Orders</p>
+            <h2 class="text-2xl md:text-4xl font-bold text-indigo-600 mt-1" id="skuTodayCount">0</h2>
+          </div>
+        </div>
+
+        <!-- Unified Date Filter for Charts -->
+        <div
+          class="flex flex-wrap items-center gap-2 md:gap-4 mb-4 md:mb-6 bg-gray-50 p-2 md:p-4 rounded-lg border border-gray-200">
+          <span class="text-xs md:text-sm font-medium text-gray-700 w-full md:w-auto">Analysis Period:</span>
+          <div class="flex gap-2 w-full md:w-auto">
+            <input type="date" id="skuStartDate"
+              class="flex-1 px-2 py-1.5 md:px-3 md:py-2 border border-gray-300 rounded-md text-xs md:text-sm focus:ring-indigo-500 focus:border-indigo-500">
+            <span class="text-gray-500 self-center text-xs">to</span>
+            <input type="date" id="skuEndDate"
+              class="flex-1 px-2 py-1.5 md:px-3 md:py-2 border border-gray-300 rounded-md text-xs md:text-sm focus:ring-indigo-500 focus:border-indigo-500">
+          </div>
+          <button onclick="updateSkuCharts()"
+            class="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-md text-xs md:text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm w-full md:w-auto">
+            Apply Filter
+          </button>
+          <div class="flex gap-2 ml-auto w-full md:w-auto overflow-x-auto no-scrollbar justify-start md:justify-end">
+            <button id="skuBtnToday" onclick="setSkuDatePreset('today')"
+              class="px-3 py-1 text-[10px] md:text-xs font-medium rounded-md bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap">Today</button>
+            <button id="skuBtn7days" onclick="setSkuDatePreset('7days')"
+              class="px-3 py-1 text-[10px] md:text-xs font-medium rounded-md bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap">Last
+              7 Days</button>
+            <button id="skuBtn30days" onclick="setSkuDatePreset('30days')"
+              class="px-3 py-1 text-xs font-medium rounded-md bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">Last
+              30 Days</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW: Stats Card (Total & Breakdown) -->
+      <div class="bg-white rounded-xl border border-gray-200 p-3 md:p-6 mb-6 md:mb-8 shadow-sm">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
+          <div class="text-center md:text-left">
+            <p class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">Total Orders (Range)</p>
+            <h3 class="text-2xl md:text-4xl font-bold text-indigo-600 mt-1 md:mt-2" id="skuRangeTotalDisplay">0</h3>
+          </div>
+          <div class="flex-1 w-full overflow-x-auto no-scrollbar">
+            <div class="flex gap-2 md:gap-4 justify-start md:justify-end" id="skuSizeBreakdownDisplay">
+              <!-- Populated by JS -->
+              <span class="text-gray-400 text-xs md:text-sm">Loading stats...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+        <!-- Size Analysis -->
+        <div class="bg-white rounded-xl border border-gray-200 p-3 md:p-4">
+          <div class="flex justify-between items-center mb-2 md:mb-4">
+            <h4 class="font-bold text-gray-700 text-sm md:text-base">Size Breakdown</h4>
+          </div>
+          <div class="h-56 md:h-64">
+            <canvas id="sizeChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Trend Analysis -->
+        <div class="bg-white rounded-xl border border-gray-200 p-3 md:p-4">
+          <div class="flex justify-between items-center mb-2 md:mb-4">
+            <h4 class="font-bold text-gray-700 text-sm md:text-base">Order Trend</h4>
+          </div>
+          <div class="h-56 md:h-64">
+            <canvas id="skuTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="skuPlaceholder" class="text-center py-12 text-gray-400">
+      <i class="fas fa-search text-4xl mb-3"></i>
+      <p>Search for a SKU to view specific performance metrics.</p>
+    </div>
+  </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      let currentRange = 'today';
+      let trendChart = null;
+      let platformChart = null;
+      let skuChart = null;
+
+      window.setRange = function (range) {
+        currentRange = range;
+
+        // Update buttons
+        ['today', 'yesterday', '7days', 'custom'].forEach(r => {
+          const btn = document.getElementById(`btn-${r}`);
+          if (r === range) {
+            btn.className = "px-4 py-2 rounded-md text-sm font-medium transition-colors bg-indigo-100 text-indigo-700";
+          } else {
+            btn.className = "px-4 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors";
+          }
+        });
+
+        const customContainer = document.getElementById('customDateContainer');
+        if (range === 'custom') {
+          customContainer.classList.remove('hidden');
+        } else {
+          customContainer.classList.add('hidden');
+          fetchData();
+        }
+      }
+
+      window.applyCustomDate = function () {
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+
+        if (!start || !end) {
+          alert("Please select both start and end dates.");
+          return;
+        }
+        fetchData();
+      }
+
+      function fetchData() {
+        let url = `api/analytics.php?action=stats&range=${currentRange}`;
+        if (currentRange === 'custom') {
+          const start = document.getElementById('startDate').value;
+          const end = document.getElementById('endDate').value;
+          url += `&start_date=${start}&end_date=${end}`;
+        }
+
+        fetch(url)
+          .then(res => res.json())
+          .then(data => {
+            // Update Summary
+            document.getElementById('totalOrders').textContent = data.summary.total_orders || 0;
+            document.getElementById('pendingOrders').textContent = data.summary.pending_orders || 0;
+            document.getElementById('pickedOrders').textContent = data.summary.completed_orders || 0;
+            document.getElementById('substitutions').textContent = data.summary.substitutions || 0;
+
+            // Detailed Pending Breakdown
+            const notPicked = data.summary.not_picked || 0;
+            const partial = data.summary.partial || 0;
+            const notFound = data.summary.not_found || 0;
+            document.getElementById('pendingBreakdown').innerHTML =
+              `Not Picked: <span class="text-red-500">${notPicked}</span> | Partial: <span class="text-yellow-600">${partial}</span> | Not Found: <span class="text-orange-500">${notFound}</span>`;
+
+            // Update Trend Chart
+            updateTrendChart(data.trend);
+
+            // Update Platform Chart
+            updatePlatformChart(data.platforms);
+          });
+      }
+
+      function updateTrendChart(data) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+
+        if (trendChart) trendChart.destroy();
+
+        trendChart = new Chart(ctx, {
+          type: 'bar', // Changed from 'line' to 'bar'
+          data: {
+            labels: data.map(d => d.label),
+            datasets: [{
+              label: 'Orders',
+              data: data.map(d => d.value),
+              borderColor: '#4f46e5',
+              backgroundColor: '#4f46e5', // Solid color for bars
+              borderWidth: 0,
+              barThickness: 'flex',
+              maxBarThickness: 30, // Restrict bar width
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { borderDash: [2, 4] },
+                ticks: {
+                  stepSize: 1, // Force integer steps
+                  precision: 0
+                }
+              },
+              x: { grid: { display: false } }
+            },
+            interaction: {
+              mode: 'index',
+              intersect: false,
+            }
+          }
+        });
+      }
+
+      function updatePlatformChart(data) {
+        const ctx = document.getElementById('platformChart').getContext('2d');
+
+        if (platformChart) platformChart.destroy();
+
+        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+        platformChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: data.map(d => d.platform),
+            datasets: [{
+              data: data.map(d => d.count),
+              backgroundColor: colors.slice(0, data.length),
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+      }
+
+      let currentSku = '';
+      let sizeChartInstance = null;
+      let skuTrendChartInstance = null;
+
+
+
+      window.searchSku = function () {
+        const sku = document.getElementById('skuSearch').value;
+        if (!sku) return;
+        currentSku = sku;
+
+        document.getElementById('skuStats').classList.remove('hidden');
+        document.getElementById('skuPlaceholder').classList.add('hidden');
+        document.getElementById('skuNameDisplay').textContent = sku.toUpperCase();
+
+        // 1. Fetch Today's Count (Always Today)
+        fetch(`api/analytics.php?action=sku_today&sku=${encodeURIComponent(sku)}`)
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('skuTodayCount').textContent = data.count || 0;
+          });
+
+        // 2. Set default date range (Last 7 Days) and fetch charts
+        setSkuDatePreset('7days');
+      }
+
+      window.setSkuDatePreset = function (preset) {
+        const end = new Date();
+        const start = new Date();
+
+        if (preset === 'today') {
+          document.getElementById('skuBtnToday').classList.add('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+          document.getElementById('skuBtn7days').classList.remove('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+          document.getElementById('skuBtn30days').classList.remove('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+        } else if (preset === '7days') {
+          start.setDate(end.getDate() - 6);
+          document.getElementById('skuBtnToday').classList.remove('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+          document.getElementById('skuBtn7days').classList.add('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+          document.getElementById('skuBtn30days').classList.remove('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+        } else if (preset === '30days') {
+          start.setDate(end.getDate() - 29);
+          document.getElementById('skuBtnToday').classList.remove('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+          document.getElementById('skuBtn7days').classList.remove('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+          document.getElementById('skuBtn30days').classList.add('bg-indigo-50', 'text-indigo-600', 'border-indigo-200');
+        }
+
+        document.getElementById('skuStartDate').value = start.toISOString().split('T')[0];
+        document.getElementById('skuEndDate').value = end.toISOString().split('T')[0];
+
+        updateSkuCharts();
+      }
+
+      window.updateSkuCharts = function () {
+        const start = document.getElementById('skuStartDate').value;
+        const end = document.getElementById('skuEndDate').value;
+
+        if (!start || !end) {
+          alert("Please select both start and end dates for SKU analysis.");
+          return;
+        }
+
+        const urlParams = `&sku=${encodeURIComponent(currentSku)}&range=custom&start_date=${start}&end_date=${end}`;
+
+        // Update Size Chart
+        fetch(`api/analytics.php?action=sku_sizes${urlParams}`)
+          .then(res => res.json())
+          .then(data => {
+            const ctx = document.getElementById('sizeChart').getContext('2d');
+            if (sizeChartInstance) sizeChartInstance.destroy();
+
+            sizeChartInstance = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: Object.keys(data).map(k => k.toUpperCase()),
+                datasets: [{
+                  label: 'Orders',
+                  data: Object.values(data),
+                  backgroundColor: '#4f46e5',
+                  borderRadius: 4,
+                  barThickness: 'flex',
+                  maxBarThickness: 30
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                  mode: 'index',
+                  intersect: false, // Fix hover issue
+                },
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, precision: 0 } // Integer scale
+                  },
+                  x: { grid: { display: false } }
+                }
+              }
+            });
+
+            // Calculate Total in Range
+            const totalInRange = Object.values(data).reduce((acc, curr) => acc + parseInt(curr), 0);
+
+            // Update New Stats Card
+            document.getElementById('skuRangeTotalDisplay').textContent = totalInRange;
+
+            const breakdownContainer = document.getElementById('skuSizeBreakdownDisplay');
+            breakdownContainer.innerHTML = '';
+
+            if (Object.keys(data).length === 0) {
+              breakdownContainer.innerHTML = '<span class="text-gray-400 text-sm">No orders in this period</span>';
+            } else {
+              Object.entries(data).forEach(([size, count]) => {
+                const badge = document.createElement('div');
+                badge.className = "flex flex-col items-center bg-gray-50 px-4 py-2 rounded-lg border border-gray-100 min-w-[60px]";
+                badge.innerHTML = `
+                        <span class="text-xs font-bold text-gray-500 uppercase mb-1">${size}</span>
+                        <span class="text-lg font-bold text-gray-800">${count}</span>
+                    `;
+                breakdownContainer.appendChild(badge);
+              });
+            }
+          });
+
+        // Update Trend Chart
+        fetch(`api/analytics.php?action=sku_trend${urlParams}`)
+          .then(res => res.json())
+          .then(data => {
+            const ctx = document.getElementById('skuTrendChart').getContext('2d');
+            if (skuTrendChartInstance) skuTrendChartInstance.destroy();
+
+            skuTrendChartInstance = new Chart(ctx, {
+              type: 'bar', // Changed from line to bar
+              data: {
+                labels: data.map(d => d.label),
+                datasets: [{
+                  label: 'Orders',
+                  data: data.map(d => d.value),
+                  backgroundColor: '#10b981', // Solid green
+                  borderColor: '#10b981',
+                  borderWidth: 0,
+                  borderRadius: 4,
+                  barThickness: 'flex',
+                  maxBarThickness: 30
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                  mode: 'index',
+                  intersect: false, // Fix hover issue
+                },
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    grid: { borderDash: [2, 4] },
+                    ticks: { stepSize: 1, precision: 0 } // Integer scale
+                  },
+                  x: { grid: { display: false } }
+                }
+              }
+            });
+          });
+      }
+
+      // Initial Load
+      fetchData();
+
+      // Add debounce to search input for autocomplete
+      if (typeof debounce === 'function') {
+        const input = document.getElementById('skuSearch');
+        const suggestionsBox = document.getElementById('skuSuggestions');
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.classList.add('hidden');
+          }
+        });
+
+        // Search on typing
+        input.addEventListener('input', debounce(function () {
+          const term = input.value.trim();
+          if (term.length < 2) {
+            suggestionsBox.classList.add('hidden');
+            return;
+          }
+
+          fetch(`api/analytics.php?action=sku_search&term=${encodeURIComponent(term)}`)
+            .then(res => res.json())
+            .then(data => {
+              suggestionsBox.innerHTML = '';
+              if (data.length > 0) {
+                data.forEach(sku => {
+                  const div = document.createElement('div');
+                  div.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700";
+                  div.textContent = sku;
+                  div.onclick = function () {
+                    input.value = sku;
+                    suggestionsBox.classList.add('hidden');
+                    searchSku();
+                  };
+                  suggestionsBox.appendChild(div);
+                });
+                suggestionsBox.classList.remove('hidden');
+              } else {
+                suggestionsBox.classList.add('hidden');
+              }
+            })
+            .catch(err => console.error('Autocomplete error:', err));
+        }, 300));
+
+        // Allow Enter key to trigger search immediately
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            suggestionsBox.classList.add('hidden');
+            searchSku();
+          }
+        });
+
+      } else {
+        console.error('debounce function not found');
+      }
+
+      window.openSubstitutionsModal = function () {
+        document.getElementById('subHistoryModal').classList.remove('hidden');
+
+        let url = `api/substitution.php?action=substitution_history&range=${currentRange}`;
+        if (currentRange === 'custom') {
+          const start = document.getElementById('startDate').value;
+          const end = document.getElementById('endDate').value;
+          url += `&start_date=${start}&end_date=${end}`;
+        } else if (currentRange === 'today') {
+          const today = new Date().toISOString().split('T')[0];
+          url += `&date=${today}`;
+        } else if (currentRange === 'yesterday') {
+          const today = new Date();
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          url += `&date=${yesterday.toISOString().split('T')[0]}`;
+        } else if (currentRange === '7days') {
+          const today = new Date();
+          const past = new Date(today);
+          past.setDate(past.getDate() - 7);
+          url += `&start_date=${past.toISOString().split('T')[0]}&end_date=${today.toISOString().split('T')[0]}`;
+        }
+
+        fetch(url)
+          .then(res => res.json())
+          .then(data => {
+            const tbody = document.getElementById('subHistoryTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No substitutions found for this period.</td></tr>';
+              return;
+            }
+
+            data.forEach(item => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(item.substituted_at).toLocaleString()}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div class="font-medium">${item.original_sku} (${item.original_size.toUpperCase()})</div>
+                                <div class="text-xs text-gray-500">Qty: ${item.original_quantity}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div class="font-medium">${item.substitute_sku} (${item.substitute_size.toUpperCase()})</div>
+                                <div class="text-xs text-gray-500">Qty: ${item.substitute_quantity}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.reason}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.substituted_by_name || 'Unknown'}</td>
+                        `;
+              tbody.appendChild(row);
+            });
+          })
+          .catch(err => console.error('Error fetching history:', err));
+      }
+
+      window.closeSubHistoryModal = function () {
+        document.getElementById('subHistoryModal').classList.add('hidden');
+      }
+
+      window.openItemDetailsModal = function (type) {
+        const titles = {
+          'total': 'Total Orders (Line Items)',
+          'pending': 'Pending Orders (Line Items)',
+          'picked': 'Completed Orders (Line Items)'
+        };
+        document.getElementById('itemDetailsTitle').textContent = titles[type] || 'Item Details';
+        document.getElementById('itemDetailsModal').classList.remove('hidden');
+
+        let url = `api/analytics.php?action=item_details&type=${type}&range=${currentRange}`;
+        if (currentRange === 'custom') {
+          const start = document.getElementById('startDate').value;
+          const end = document.getElementById('endDate').value;
+          url += `&start_date=${start}&end_date=${end}`;
+        } else if (currentRange === 'today') {
+          const today = new Date().toISOString().split('T')[0];
+          url += `&date=${today}`;
+        } else if (currentRange === 'yesterday') {
+          const today = new Date();
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          url += `&date=${yesterday.toISOString().split('T')[0]}`;
+        } else if (currentRange === '7days') {
+          const today = new Date();
+          const past = new Date(today);
+          past.setDate(past.getDate() - 7);
+          url += `&start_date=${past.toISOString().split('T')[0]}&end_date=${today.toISOString().split('T')[0]}`;
+        }
+
+        fetch(url)
+          .then(res => res.json())
+          .then(data => {
+            const tbody = document.getElementById('itemDetailsTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No items found.</td></tr>';
+              return;
+            }
+
+            data.forEach(item => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(item.upload_date).toLocaleDateString()}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">#${item.picklist_id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.sku}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 uppercase">${item.size}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                ${item.quantity_required} / <span class="${item.quantity_picked < item.quantity_required ? 'text-red-600' : 'text-green-600'} font-bold">${item.quantity_picked}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    ${item.status === 'picked' ? 'bg-green-100 text-green-800' :
+                  item.status === 'pending' ? 'bg-gray-100 text-gray-800' :
+                    item.status === 'substituted' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'}">
+                                    ${item.status}
+                                </span>
+                            </td>
+                        `;
+              tbody.appendChild(tr);
+            });
+          })
+          .catch(err => console.error('Error fetching details:', err));
+      }
+
+      window.closeItemDetailsModal = function () {
+        document.getElementById('itemDetailsModal').classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+
+</html>

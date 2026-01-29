@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/jpeg" href="../img/eazyinventory_logo.jpeg">
+    <title>My Picklists</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <script src="../assets/js/ui.js" defer></script>
+    <script src="../assets/js/navbar.js" defer></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen pb-20">
+    <!-- Navbar injected by navbar.js -->
+
+    <!-- Content -->
+    <div class="container mx-auto p-4 transition-all duration-300">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-xl md:text-2xl font-bold text-gray-800">My Tasks</h1>
+            <span class="text-sm text-gray-500" id="pickerNameDisplay"></span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="picklistContainer">
+            <!-- Cards populated by JS -->
+            <div class="col-span-full text-center py-8 text-gray-500">Loading tasks...</div>
+        </div>
+    </div>
+
+    <script>
+        const userId = localStorage.getItem('userId');
+        const username = localStorage.getItem('username');
+
+        if (!userId) {
+            window.location.href = '../login.html';
+        }
+
+        document.getElementById('pickerNameDisplay').textContent = username || 'Stocker';
+
+        function fetchMyPicklists() {
+            fetch(`../api/picklist.php?action=list&picker_id=${userId}&status=in_progress`)
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('picklistContainer');
+                    container.innerHTML = '';
+
+                    if (data.length === 0) {
+                        container.innerHTML = `
+                            <div class="col-span-full text-center py-10">
+                                <i class="fas fa-clipboard-check text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-gray-500">No active picklists assigned.</p>
+                            </div>`;
+                        return;
+                    }
+
+                    data.forEach(p => {
+                        const progress = Math.round((p.picked_items / p.total_items) * 100);
+                        const card = document.createElement('div');
+                        card.className = 'bg-white rounded-xl shadow-sm p-6 border-l-4 border-indigo-500 hover:shadow-md transition-shadow glass-card';
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded uppercase">${p.platform}</span>
+                                    <h3 class="font-bold text-gray-800 mt-2 text-lg">Picklist #${p.picklist_id}</h3>
+                                </div>
+                                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">${new Date(p.upload_date).toLocaleDateString()}</span>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                    <span>Progress</span>
+                                    <span class="font-bold">${p.picked_items}/${p.total_items}</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+
+                            <button onclick="startPicking(${p.picklist_id})" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm flex justify-center items-center gap-2">
+                                ${progress > 0 ? '<i class="fas fa-play"></i> Continue Picking' : '<i class="fas fa-play"></i> Start Picking'}
+                            </button>
+                        `;
+                        container.appendChild(card);
+                    });
+                });
+        }
+
+        function startPicking(id) {
+            window.location.href = `pick.html?id=${id}`;
+        }
+
+        // Logout is handled by navbar.js
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchMyPicklists();
+        });
+    </script>
+</body>
+
+</html>

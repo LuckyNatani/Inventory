@@ -1,0 +1,211 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --primary-color: #4f46e5;
+    /* Indigo 600 */
+    --primary-hover: #4338ca;
+    /* Indigo 700 */
+    --secondary-color: #10b981;
+    /* Emerald 500 */
+    --bg-color: #f3f4f6;
+    /* Gray 100 */
+    --text-color: #1f2937;
+    /* Gray 800 */
+    --sidebar-width: 250px;
+    --header-height: 64px;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.025em;
+    /* Tighter tracking for headings */
+}
+
+h1 {
+    font-weight: 700;
+}
+
+h2 {
+    font-weight: 600;
+}
+
+h3 {
+    font-weight: 600;
+}
+
+/* Spinner Styles */
+#global-spinner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px);
+}
+
+#global-spinner.hidden {
+    display: none !important;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #e5e7eb;
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: var(--sidebar-width);
+    bottom: 0;
+    position: fixed;
+    left: 0;
+    top: 0;
+    background-color: white;
+    z-index: 50;
+    transition: all 0.3s ease;
+    border-right: 1px solid #e5e7eb;
+    transform: translateX(-100%);
+    /* Mobile default: hidden */
+}
+
+/* Mobile Open State */
+.sidebar.open {
+    transform: translateX(0);
+}
+
+/* Desktop Styles */
+@media (min-width: 768px) {
+    .sidebar {
+        transform: translateX(0);
+        /* Always visible on desktop */
+    }
+
+    .sidebar.collapsed {
+        width: 4rem;
+        /* 64px */
+    }
+
+    .sidebar.collapsed .sidebar-text,
+    .sidebar.collapsed .logo-text,
+    .sidebar.collapsed .user-info {
+        display: none;
+    }
+
+    .sidebar.collapsed .sidebar-link {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .sidebar.collapsed #desktopCollapseBtn {
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+    }
+}
+
+.main-content {
+    transition: margin-left 0.3s ease;
+    margin-left: 0;
+    padding: 1rem;
+}
+
+@media (min-width: 768px) {
+    .main-content {
+        margin-left: var(--sidebar-width);
+    }
+
+    .main-content.expanded {
+        margin-left: 4rem;
+        /* Match collapsed sidebar width */
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c7c7c7;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+/* Premium Card Effect */
+.glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Optimize display density for desktop */
+@media (min-width: 1024px) {
+    body {
+        zoom: 0.9;
+        /* Chrome/Edge/Safari */
+
+        -moz-transform: scale(0.9);
+        -moz-transform-origin: top center;
+
+        /* Standard property */
+        transform: scale(0.9);
+        transform-origin: top center;
+
+        width: 100%;
+    }
+
+    /* Prevent double scaling in browsers that support zoom */
+    @supports (zoom: 1) {
+        body {
+            transform: none;
+        }
+    }
+
+    /* Firefox specific width correction */
+    @supports (-moz-appearance:none) {
+        body {
+            width: 111.11%;
+        }
+    }
+}

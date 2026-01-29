@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
+    <title>Tailors Cut</title>
+    <script src="assets/js/ui.js" defer></script>
+    <script src="assets/js/config.js" defer></script>
+    <script src="assets/js/tailor.js?v=2" defer></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/navbar.js" defer></script>
+</head>
+
+<body class="bg-gray-100">
+    <!-- Navbar will be injected here by navbar.js -->
+
+    <div class="container mx-auto p-2 md:p-4 transition-all duration-300">
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6 glass-card">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Tailors Cut</h1>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                <!-- Filter Section -->
+                <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                    <!-- Row 1: Search + Rack -->
+                    <div class="flex gap-3 w-full md:w-auto">
+                        <div class="relative flex-grow md:flex-grow-0">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            <input type="text" id="searchInput" placeholder="Search SKU..."
+                                class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                        </div>
+                        <input type="text" id="rackFilter" placeholder="Rack..."
+                            class="w-28 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    </div>
+
+                    <!-- Row 2: Category + Filters -->
+                    <div class="flex flex-wrap md:flex-nowrap gap-3 w-full md:w-auto">
+                        <select id="categoryFilter"
+                            class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white flex-grow md:flex-grow-0">
+                            <option value="all">All Categories</option>
+                        </select>
+                        <!-- Sort -->
+                        <select id="sortFilter"
+                            class="p-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-gray-700">
+                            <option value="sku">Sort by SKU</option>
+                            <option value="updated">Last Updated</option>
+                        </select>
+                        <!-- View Logs (Admin Only) -->
+                        <button id="viewLogsBtn"
+                            class="hidden bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors shadow-sm">
+                            <i class="fas fa-history mr-2"></i> Changes
+                        </button>
+                        <!-- Export -->
+                        <button id="exportBtn"
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+                            <i class="fas fa-file-export mr-2"></i> Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-gray-200 relative">
+                <div class="overflow-auto max-h-[75vh] relative">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" rowspan="2"
+                                    class="sticky left-0 top-0 z-20 bg-gray-50 px-2 py-2 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                    SKU
+                                </th>
+                                <th scope="col" rowspan="2"
+                                    class="sticky top-0 z-10 bg-gray-50 px-2 py-2 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    IMG
+                                </th>
+                                <th scope="col" rowspan="2"
+                                    class="sticky top-0 z-10 bg-gray-50 px-2 py-2 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Cat
+                                </th>
+                                <th scope="col" rowspan="2"
+                                    class="sticky top-0 z-10 bg-gray-50 px-2 py-2 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Rack
+                                </th>
+                                <!-- Group Headers -->
+                                <th scope="col" colspan="6"
+                                    class="sticky top-0 z-10 bg-blue-50 px-2 py-1 text-center text-[10px] md:text-xs font-bold text-blue-700 uppercase tracking-wider border-b border-blue-100">
+                                    S - 3XL
+                                </th>
+                                <th scope="col" colspan="6"
+                                    class="sticky top-0 z-10 bg-purple-50 px-2 py-1 text-center text-[10px] md:text-xs font-bold text-purple-700 uppercase tracking-wider border-b border-purple-100">
+                                    M - 3XL
+                                </th>
+                                <th scope="col" colspan="6"
+                                    class="sticky top-0 z-10 bg-orange-50 px-2 py-1 text-center text-[10px] md:text-xs font-bold text-orange-700 uppercase tracking-wider border-b border-orange-100">
+                                    S - 2XL
+                                </th>
+
+                                <th scope="col" rowspan="2"
+                                    class="sticky top-0 z-10 bg-gray-50 px-2 py-2 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Rem
+                                </th>
+
+                                <th scope="col" rowspan="2"
+                                    class="sticky top-0 z-10 bg-gray-50 px-2 py-2 text-left text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Upd
+                                </th>
+                                <th scope="col" rowspan="2"
+                                    class="sticky top-0 z-10 bg-gray-50 px-2 py-2 text-right text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Act
+                                </th>
+                            </tr>
+                            <tr>
+                                <!-- Group 1 Sub-headers -->
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-blue-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    T+B</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-blue-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Top</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-blue-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Bot</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-blue-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Wrk</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-blue-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Lc1</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-blue-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Lc2</th>
+
+                                <!-- Group 2 Sub-headers -->
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-purple-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    T+B</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-purple-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Top</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-purple-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Bot</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-purple-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Wrk</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-purple-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Lc1</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-purple-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Lc2</th>
+
+                                <!-- Group 3 Sub-headers -->
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-orange-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    T+B</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-orange-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Top</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-orange-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Bot</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-orange-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Wrk</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-orange-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Lc1</th>
+                                <th
+                                    class="sticky top-[33px] md:top-[37px] z-10 bg-orange-50/50 px-1 py-1 text-[10px] font-medium text-gray-500 border-b text-center">
+                                    Lc2</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tailorTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="flex items-center justify-between mt-4">
+                <div class="text-sm text-gray-500">
+                    Showing <span id="showing-from" class="font-medium">0</span> to <span id="showing-to"
+                        class="font-medium">0</span> of <span id="total-items" class="font-medium">0</span> items
+                </div>
+                <div class="flex space-x-2">
+                    <button id="prev-page"
+                        class="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div id="pagination-numbers" class="flex space-x-1"></div>
+                    <button id="next-page"
+                        class="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        disabled>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Edit Cut Modal -->
+    <div id="editCutModal"
+        class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800" id="editModalTitle">Edit Cuts</h3>
+                <button id="closeEditModal" class="text-gray-500 hover:text-gray-700 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-200">
+                <button
+                    class="tab-btn flex-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-indigo-600 focus:outline-none transition-colors active-tab"
+                    data-tab="g1">
+                    S - 3XL
+                </button>
+                <button
+                    class="tab-btn flex-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-indigo-600 focus:outline-none transition-colors"
+                    data-tab="g2">
+                    M - 3XL
+                </button>
+                <button
+                    class="tab-btn flex-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-indigo-600 focus:outline-none transition-colors"
+                    data-tab="g3">
+                    S - 2XL
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6 overflow-y-auto flex-1">
+                <form id="cutForm">
+                    <input type="hidden" id="editSku">
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Remark</label>
+                        <textarea id="editRemark" rows="2"
+                            class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                            placeholder="Enter remarks..."></textarea>
+                    </div>
+
+                    <!-- Group 1 Content -->
+                    <div id="g1-content" class="tab-content block space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Top + Bottom</label>
+                            <input type="text" id="g1_top_bottom"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Top Only</label>
+                            <input type="text" id="g1_top"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Bottom Only</label>
+                            <input type="text" id="g1_bottom"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Work</label>
+                            <input type="text" id="g1_work"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Lace 1</label>
+                                <input type="text" id="g1_lace1"
+                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                    placeholder="Lace 1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Lace 2</label>
+                                <input type="text" id="g1_lace2"
+                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                    placeholder="Lace 2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Group 2 Content -->
+                    <div id="g2-content" class="tab-content hidden space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Top + Bottom</label>
+                            <input type="text" id="g2_top_bottom"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Top Only</label>
+                            <input type="text" id="g2_top"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Bottom Only</label>
+                            <input type="text" id="g2_bottom"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Work</label>
+                            <input type="text" id="g2_work"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Lace 1</label>
+                                <input type="text" id="g2_lace1"
+                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                    placeholder="Lace 1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Lace 2</label>
+                                <input type="text" id="g2_lace2"
+                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                    placeholder="Lace 2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Group 3 Content -->
+                    <div id="g3-content" class="tab-content hidden space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Top + Bottom</label>
+                            <input type="text" id="g3_top_bottom"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Top Only</label>
+                            <input type="text" id="g3_top"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Bottom Only</label>
+                            <input type="text" id="g3_bottom"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Work</label>
+                            <input type="text" id="g3_work"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                placeholder="Enter details...">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Lace 1</label>
+                                <input type="text" id="g3_lace1"
+                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                    placeholder="Lace 1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Lace 2</label>
+                                <input type="text" id="g3_lace2"
+                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                    placeholder="Lace 2">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <button id="cancelEdit"
+                    class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
+                <button id="saveEdit"
+                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition-colors flex items-center gap-2">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal"
+        class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+        <div class="relative">
+            <img id="modalImage" class="max-h-[85vh] rounded-lg shadow-2xl" />
+            <button id="closeModal"
+                class="absolute -top-10 right-0 text-white text-2xl hover:text-gray-300 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Change Log Modal -->
+    <div id="changeLogModal"
+        class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center hidden z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800">Change Log</h3>
+                <button id="closeLogModal" class="text-gray-500 hover:text-gray-700 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-4 border-b border-gray-100 bg-white flex gap-3">
+                <input type="text" id="logSearchInput" placeholder="Filter by SKU..."
+                    class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none w-64 text-sm">
+            </div>
+
+            <div class="p-0 overflow-y-auto flex-1">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                SKU</th>
+
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Changes</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                User</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Logs injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                <button onclick="document.getElementById('changeLogModal').classList.add('hidden')"
+                    class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Close</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

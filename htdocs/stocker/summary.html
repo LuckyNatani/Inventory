@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/jpeg" href="../img/eazyinventory_logo.jpeg">
+    <title>Picklist Summary</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <script src="../assets/js/ui.js" defer></script>
+    <script src="../assets/js/navbar.js" defer></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Navbar injected by navbar.js -->
+    <div class="flex-1 p-6 flex flex-col justify-center items-center text-center">
+        <div class="bg-white rounded-full p-6 shadow-lg mb-6 animate-bounce-in">
+            <i class="fas fa-check-circle text-5xl md:text-6xl text-green-500"></i>
+        </div>
+        <h1 class="text-xl md:text-2xl font-bold text-gray-800 mb-2">#<span id="picklistId"></span> Picking Complete!
+        </h1>
+
+        <div class="bg-white rounded-xl shadow-md w-full max-w-sm overflow-hidden mb-8 glass-card">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                <span class="text-gray-600">Total Items</span>
+                <span class="font-bold text-lg" id="totalItems">0</span>
+            </div>
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-green-50">
+                <span class="text-green-800">Fully Picked</span>
+                <span class="font-bold text-lg text-green-700" id="pickedItems">0</span>
+            </div>
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-yellow-50">
+                <span class="text-yellow-800">Partial</span>
+                <span class="font-bold text-lg text-yellow-700" id="partialItems">0</span>
+            </div>
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-red-50">
+                <span class="text-red-800">Not Found</span>
+                <span class="font-bold text-lg text-red-700" id="notFoundItems">0</span>
+            </div>
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <span class="text-gray-800">Not Picked</span>
+                <span class="font-bold text-lg text-gray-700" id="notPickedItems">0</span>
+            </div>
+        </div>
+
+        <div class="w-full max-w-sm space-y-3">
+            <button onclick="window.location.href='pick.html?id=' + picklistId"
+                class="w-full bg-white text-indigo-600 border-2 border-indigo-600 py-3 rounded-xl font-bold shadow-sm active:scale-95 transition-all hover:bg-indigo-50">
+                Review / Edit Picklist
+            </button>
+            <button onclick="submitPicklist()"
+                class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-all hover:bg-indigo-700">
+                Submit Picklist
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const userId = localStorage.getItem('userId');
+        if (!userId) window.location.href = '../login.html';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const picklistId = urlParams.get('id');
+
+        if (!picklistId) {
+            window.location.href = 'my-picklists.html';
+        }
+
+        document.getElementById('picklistId').textContent = picklistId;
+
+        function fetchSummary() {
+            fetch(`../api/picklist.php?action=items&picklist_id=${picklistId}`)
+                .then(res => res.json())
+                .then(items => {
+                    document.getElementById('totalItems').textContent = items.length;
+                    document.getElementById('notPickedItems').textContent = items.filter(i => ['not_picked', 'pending'].includes(i.status)).length;
+                    document.getElementById('pickedItems').textContent = items.filter(i => i.status === 'picked').length;
+                    document.getElementById('partialItems').textContent = items.filter(i => i.status === 'partial').length;
+                    document.getElementById('notFoundItems').textContent = items.filter(i => i.status === 'not_found').length;
+                })
+                .catch(err => console.error('Error fetching summary:', err));
+        }
+
+        function submitPicklist() {
+            if (!confirm('Are you sure you want to submit this picklist? This action cannot be undone.')) return;
+
+            fetch('../api/picklist.php?action=complete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    picklist_id: picklistId,
+                    user_id: userId
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Picklist submitted successfully!");
+                        window.location.href = 'my-picklists.html';
+                    } else {
+                        alert("Error submitting picklist: " + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error submitting picklist:', err);
+                    alert('Network error occurred.');
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchSummary();
+        });
+    </script>
+</body>
+
+</html>
