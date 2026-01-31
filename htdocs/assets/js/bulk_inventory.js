@@ -41,7 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let failed = 0;
 
         // Process in chunks to avoid timeout/memory issues
-        const chunkSize = 50;
+        // Detect if images are present to adjust chunk size
+        const hasImages = data.some(row => row['Image URL'] || row['image_url'] || row['image link'] || row['image']);
+        const chunkSize = hasImages ? 10 : 50; // Reduce to 10 if processing images
+
         for (let i = 0; i < data.length; i += chunkSize) {
             const chunk = data.slice(i, i + chunkSize);
 

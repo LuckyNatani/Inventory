@@ -60,6 +60,20 @@ function finalizeSizeInput(input) {
   input.value = String(final);
 }
 
+// Global function for Product Type Toggle
+window.toggleProductType = function (type) {
+  const sizedInputs = document.getElementById('sized_inputs');
+  const unitaryInputs = document.getElementById('unitary_inputs');
+
+  if (type === 'sized') {
+    sizedInputs.classList.remove('hidden');
+    unitaryInputs.classList.add('hidden');
+  } else {
+    sizedInputs.classList.add('hidden');
+    unitaryInputs.classList.remove('hidden');
+  }
+};
+
 
 
 function getLinkIcon(url, type) {
@@ -185,7 +199,7 @@ function renderInventory(data) {
   const tbody = document.getElementById('inventoryTableBody');
   tbody.innerHTML = '';
 
-  const baseImgUrl = (typeof CONFIG !== 'undefined' && CONFIG.IMAGE_BASE_URL) ? CONFIG.IMAGE_BASE_URL : "assets/images/products/";
+  const baseImgUrl = data.image_base_url || ((typeof CONFIG !== 'undefined' && CONFIG.IMAGE_BASE_URL) ? CONFIG.IMAGE_BASE_URL : "assets/images/products/");
 
   if (data.items.length === 0) {
     tbody.innerHTML = '<tr><td colspan="14" class="text-center p-8 text-gray-500">No items found matching your criteria.</td></tr>';
@@ -196,10 +210,15 @@ function renderInventory(data) {
       const imgPath = item.img1 || encodeURIComponent(item.sku || '').replace(/%20/g, '%2520');
       const fullImgUrl = `${baseImgUrl}${imgPath}.webp`;
 
+      const isUnitary = item.product_type === 'unitary';
+      const totalQty = isUnitary ? (item.quantity || 0) : (Number(item.xs || 0) + Number(item.s || 0) + Number(item.m || 0) + Number(item.l || 0) + Number(item.xl || 0) + Number(item.xxl || 0) + Number(item.xxxl || 0));
+
       const row = document.createElement('tr');
       row.className = 'hover:bg-gray-50 transition-colors';
       row.innerHTML = `
-          <td class="sticky left-0 z-10 bg-white border-r border-gray-100 px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-base text-gray-800 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">${item.sku || '-'}</td>
+          <td class="sticky left-0 z-10 bg-white border-r border-gray-100 px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-base text-gray-800 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+            ${item.sku || '-'} <span class="text-[10px] text-gray-400 block">${isUnitary ? '(Unitary)' : ''}</span>
+          </td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center">
             <div class="flex items-center justify-center gap-2 flex-wrap max-w-[150px]">
                 ${(item.live_links || '').split(',').map(url => {
@@ -220,16 +239,20 @@ function renderInventory(data) {
         `<span class="bg-gray-100 px-1 py-0.5 md:px-2 md:py-1 rounded inline-block m-0.5 text-[10px] md:text-sm border border-gray-200">${loc.trim()}</span>`
       ).join('')}
           </td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${Number(item.s) === 0 ? 'text-red-600 font-bold' : Number(item.s) <= Number(item.min_stock_alert) ? 'text-yellow-600 font-semibold' : ''}">${item.s}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${Number(item.m) === 0 ? 'text-red-600 font-bold' : Number(item.m) <= Number(item.min_stock_alert) ? 'text-yellow-600 font-semibold' : ''}">${item.m}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${Number(item.l) === 0 ? 'text-red-600 font-bold' : Number(item.l) <= Number(item.min_stock_alert) ? 'text-yellow-600 font-semibold' : ''}">${item.l}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${Number(item.xl) === 0 ? 'text-red-600 font-bold' : Number(item.xl) <= Number(item.min_stock_alert) ? 'text-yellow-600 font-semibold' : ''}">${item.xl}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${Number(item.xxl) === 0 ? 'text-red-600 font-bold' : Number(item.xxl) <= Number(item.min_stock_alert) ? 'text-yellow-600 font-semibold' : ''}">${item.xxl}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${Number(item.xxxl) === 0 ? 'text-red-600 font-bold' : Number(item.xxxl) <= Number(item.min_stock_alert) ? 'text-yellow-600 font-semibold' : ''}">${item.xxxl}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center font-bold text-gray-700 bg-gray-50 text-xs md:text-base">${Number(item.s || 0) + Number(item.m || 0) + Number(item.l || 0) + Number(item.xl || 0) + Number(item.xxl || 0) + Number(item.xxxl || 0)}</td>
+          ${isUnitary ?
+          `<td colspan="7" class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-400 italic">N/A</td>` :
+          `<td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${formatSize(item.xs, item.min_stock_alert).cls}">${formatSize(item.xs, item.min_stock_alert).text}</td>
+             <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${formatSize(item.s, item.min_stock_alert).cls}">${formatSize(item.s, item.min_stock_alert).text}</td>
+             <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${formatSize(item.m, item.min_stock_alert).cls}">${formatSize(item.m, item.min_stock_alert).text}</td>
+             <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${formatSize(item.l, item.min_stock_alert).cls}">${formatSize(item.l, item.min_stock_alert).text}</td>
+             <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${formatSize(item.xl, item.min_stock_alert).cls}">${formatSize(item.xl, item.min_stock_alert).text}</td>
+             <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${formatSize(item.xxl, item.min_stock_alert).cls}">${formatSize(item.xxl, item.min_stock_alert).text}</td>
+             <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${formatSize(item.xxxl, item.min_stock_alert).cls}">${formatSize(item.xxxl, item.min_stock_alert).text}</td>`
+        }
+          <td class="px-1 py-2 md:px-3 md:py-4 text-center font-bold text-gray-700 bg-gray-50 text-xs md:text-base">${totalQty}</td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600" data-role="admin,production">${item.cost_price ? Number(item.cost_price).toFixed(0) : '-'}</td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600" data-role="admin,production">${item.purchase_cost ? Number(item.purchase_cost).toFixed(2) : '-'}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600 font-medium" data-role="admin">${(item.cost_price || item.purchase_cost) ? '₹' + Math.round((Number(item.s || 0) + Number(item.m || 0) + Number(item.l || 0) + Number(item.xl || 0) + Number(item.xxl || 0) + Number(item.xxxl || 0)) * Number(item.cost_price || item.purchase_cost)).toLocaleString() : '-'}</td>
+          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600 font-medium" data-role="admin">${(item.cost_price || item.purchase_cost) ? '₹' + Math.round(totalQty * Number(item.cost_price || item.purchase_cost)).toLocaleString() : '-'}</td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center">
             <img src="${fullImgUrl}" onerror="this.src='fallback.jpg'" class="w-8 h-8 md:w-10 md:h-10 object-cover rounded cursor-pointer preview-img shadow-sm hover:scale-110 transition-transform" data-src="${fullImgUrl}" />
           </td>
@@ -253,6 +276,14 @@ function renderInventory(data) {
 
   setupPagination(data.total);
   controlUIByRole();
+}
+
+function formatSize(val, minStock) {
+  if (val === null || val === undefined || val === '') return { cls: 'text-gray-300', text: '-' };
+  const num = Number(val);
+  if (num === 0) return { cls: 'text-red-600 font-bold', text: '0' };
+  if (num <= Number(minStock)) return { cls: 'text-yellow-600 font-semibold', text: num };
+  return { cls: '', text: num };
 }
 
 function setupPagination(total) {
@@ -370,7 +401,7 @@ document.getElementById('productForm').addEventListener('submit', function (e) {
   const saveBtn = this.querySelector('button[type="submit"]');
   saveBtn.disabled = true;
   // finalize size inputs (convert expressions to numbers)
-  ['s', 'm', 'l', 'xl', 'xxl', 'xxxl'].forEach(id => {
+  ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl'].forEach(id => {
     const input = document.getElementById(id);
     if (input) finalizeSizeInput(input);
   });
@@ -379,12 +410,18 @@ document.getElementById('productForm').addEventListener('submit', function (e) {
   formData.append('sku', document.getElementById('sku').value);
   formData.append('category', document.getElementById('category').value);
   formData.append('rack_location', document.getElementById('rack_location').value);
-  formData.append('s', +document.getElementById('s').value);
-  formData.append('m', +document.getElementById('m').value);
-  formData.append('l', +document.getElementById('l').value);
-  formData.append('xl', +document.getElementById('xl').value);
-  formData.append('xxl', +document.getElementById('xxl').value);
-  formData.append('xxxl', +document.getElementById('xxxl').value);
+  formData.append('xs', document.getElementById('xs').value);
+  formData.append('s', document.getElementById('s').value);
+  formData.append('m', document.getElementById('m').value);
+  formData.append('l', document.getElementById('l').value);
+  formData.append('xl', document.getElementById('xl').value);
+  formData.append('xxl', document.getElementById('xxl').value);
+  formData.append('xxxl', document.getElementById('xxxl').value);
+  formData.append('quantity', +document.getElementById('quantity').value);
+
+  const productType = document.querySelector('input[name="product_type"]:checked').value;
+  formData.append('product_type', productType);
+
   formData.append('min_stock_alert', +document.getElementById('min_stock_alert').value);
   formData.append('purchase_cost', document.getElementById('purchase_cost').value);
   formData.append('status', document.getElementById('status').value);
@@ -440,7 +477,17 @@ function resetForm() {
   }
   // Clear tags
   currentTags = [];
+  // Clear tags
+  currentTags = [];
   renderRackTags();
+
+  // Reset Product Type
+  const sizedRadio = document.querySelector('input[name="product_type"][value="sized"]');
+  if (sizedRadio) {
+    sizedRadio.checked = true;
+    toggleProductType('sized');
+  }
+  document.getElementById('quantity').value = '';
 
   // Clear Link Tags
   currentLinks = [];
@@ -491,8 +538,12 @@ document.getElementById('inventoryTableBody').addEventListener('click', function
         currentTags = product.rack_location ? product.rack_location.split(',').map(t => t.trim()).filter(t => t) : [];
         renderRackTags();
 
+        document.getElementById('xs').value = product.xs;
+        document.getElementById('xs').dataset.original = product.xs;
         document.getElementById('s').value = product.s;
         document.getElementById('s').dataset.original = product.s;
+        document.getElementById('xs').value = product.xs;
+        document.getElementById('xs').dataset.original = product.xs;
         document.getElementById('m').value = product.m;
         document.getElementById('m').dataset.original = product.m;
         document.getElementById('l').value = product.l;
@@ -502,7 +553,17 @@ document.getElementById('inventoryTableBody').addEventListener('click', function
         document.getElementById('xxl').value = product.xxl;
         document.getElementById('xxl').dataset.original = product.xxl;
         document.getElementById('xxxl').value = product.xxxl;
+        document.getElementById('xxxl').value = product.xxxl;
         document.getElementById('xxxl').dataset.original = product.xxxl;
+
+        // Product Type & Quantity
+        const pType = product.product_type || 'sized';
+        const radio = document.querySelector(`input[name="product_type"][value="${pType}"]`);
+        if (radio) {
+          radio.checked = true;
+          toggleProductType(pType);
+        }
+        document.getElementById('quantity').value = product.quantity || 0;
 
         // Populate Live Links
         currentLinks = product.live_links ? product.live_links.split(',').filter(l => l.trim()) : [];
@@ -1016,3 +1077,25 @@ document.getElementById('historyList').addEventListener('scroll', function () {
 window.toggleAddProduct = toggleAddProduct; // Make globally accessible
 
 fetchInventory(currentFilters());
+
+// Cursor Fix: Move cursor to end on focus for stock inputs
+['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'quantity'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('focus', function () {
+      // Use setTimeout to ensure browser default selection is overridden
+      setTimeout(() => {
+        const len = this.value.length;
+        this.setSelectionRange(len, len);
+      }, 0);
+    });
+  }
+});
+
+// Auto-uppercase SKU
+const skuInput = document.getElementById('sku');
+if (skuInput) {
+  skuInput.addEventListener('input', function () {
+    this.value = this.value.toUpperCase();
+  });
+}

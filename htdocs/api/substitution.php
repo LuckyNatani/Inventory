@@ -153,44 +153,7 @@ if ($action === 'pending_items') {
 function updatePicklistSummary($picklist_id) {
     global $mysqli;
     
-    // 1. Get Order Stats
-    $sql = "SELECT item_id, 
-                   SUM(quantity_required) as total, 
-                   SUM(quantity_pending) as pending,
-                   status
-            FROM picklist_items 
-            WHERE picklist_id = $picklist_id 
-            GROUP BY item_id";
-    $res = $mysqli->query($sql);
-    
-    $total_orders = 0;
-    $fulfilled = 0;
-    $partial = 0;
-    $pending_orders = 0;
-    $not_found = 0;
-    $not_picked = 0;
-    
-    while ($row = $res->fetch_assoc()) {
-        $total_orders++;
-        $status = $row['status'];
-        
-        if ($row['pending'] == 0) {
-            $fulfilled++;
-        } else {
-            // Check status for unfulfilled items
-            if ($status === 'not_found') {
-                $not_found++;
-            } elseif ($status === 'not_picked') {
-                $not_picked++;
-            } elseif ($status === 'partial' || $row['pending'] < $row['total']) {
-                $partial++;
-            } else {
-                $pending_orders++;
-            }
-        }
-    }
-    
-    // 2. Get Quantities
+    // 1. Get Quantities from Items
     $sqlQty = "SELECT SUM(quantity_required) as total_qty, 
                       SUM(quantity_picked) as picked_qty 
                FROM picklist_items 
@@ -199,7 +162,7 @@ function updatePicklistSummary($picklist_id) {
     $total_quantity = $resQty['total_qty'] ?? 0;
     $picked_quantity = $resQty['picked_qty'] ?? 0;
     
-    // Substituted Qty
+    // 2. Substituted Qty
     $sqlSub = "SELECT SUM(s.substitute_quantity) as sub_qty 
                FROM substitutions s
                JOIN picklist_items pi ON s.original_item_id = pi.item_id
@@ -207,31 +170,28 @@ function updatePicklistSummary($picklist_id) {
     $resSub = $mysqli->query($sqlSub)->fetch_assoc();
     $substituted_quantity = $resSub['sub_qty'] ?? 0;
     
-    // 3. Update Summary Table
-    $check = $mysqli->query("SELECT summary_id FROM platform_orders_summary WHERE picklist_id = $picklist_id");
-    if ($check->num_rows > 0) {
-        $stmt = $mysqli->prepare("UPDATE platform_orders_summary SET 
-            total_orders=?, fulfilled_orders=?, partial_orders=?, pending_orders=?, not_found_orders=?, not_picked_orders=?,
-            total_quantity=?, picked_quantity=?, substituted_quantity=? 
-            WHERE picklist_id=?");
-        $stmt->bind_param("iiiiiiiiii", $total_orders, $fulfilled, $partial, $pending_orders, $not_found, $not_picked,
-                          $total_quantity, $picked_quantity, $substituted_quantity, $picklist_id);
-        $stmt->execute();
-    } else {
-        $pRes = $mysqli->query("SELECT platform, DATE(upload_date) as udate FROM picklists WHERE picklist_id = $picklist_id");
-        if ($pRes && $pRes->num_rows > 0) {
-            $pRow = $pRes->fetch_assoc();
-            $platform = $pRow['platform'];
-            $date = $pRow['udate'];
-            
-            $stmt = $mysqli->prepare("INSERT INTO platform_orders_summary 
-                (picklist_id, platform, date, total_orders, fulfilled_orders, partial_orders, pending_orders, not_found_orders, not_picked_orders, total_quantity, picked_quantity, substituted_quantity) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("issiiiiiiiii", $picklist_id, $platform, $date, $total_orders, $fulfilled, $partial, $pending_orders, $not_found, $not_picked,
-                              $total_quantity, $picked_quantity, $substituted_quantity);
-            $stmt->execute();
-        }
-    }
+    // 3. Update Picklists Table
+    // Also update item counts here to ensure everything is in sync
+    // This is duplicate logic from picklist.php, ideally should be in a helper file, but for now copying is safer.
+    $sqlCounts = "SELECT COUNT(*) as total, 
+                   SUM(CASE WHEN status = 'picked' THEN 1 ELSE 0 END) as picked,
+                   SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+            FROM picklist_items 
+            WHERE picklist_id = $picklist_id";
+    $resCounts = $mysqli->query($sqlCounts)->fetch_assoc();
+    
+    $total_items = $resCounts['total'];
+    $picked_items = $resCounts['picked'];
+    $pending_items = $resCounts['pending'];
+
+    $stmt = $mysqli->prepare("UPDATE picklists SET 
+        total_items=?, picked_items=?, pending_items=?,
+        total_quantity=?, picked_quantity=?, substituted_quantity=?
+        WHERE picklist_id=?");
+        
+    $stmt->bind_param("iiiiiii", $total_items, $picked_items, $pending_items, 
+                      $total_quantity, $picked_quantity, $substituted_quantity, $picklist_id);
+    $stmt->execute();
 }
 
 $mysqli->close();

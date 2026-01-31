@@ -45,6 +45,15 @@ foreach ($items as $row) {
     $cost = isset($row['cost']) ? (float)$row['cost'] : null;
     $status = strtolower($row['status'] ?? '');
     
+    // Image Handling
+    $image_url = $row['image_url'] ?? $row['image link'] ?? $row['image'] ?? '';
+    $image_processed = false;
+    if (!empty($image_url)) {
+        if (processAndSaveImage($image_url, $sku)) {
+            $image_processed = true;
+        }
+    }
+    
     // Sizes
     $s = isset($row['s']) && is_numeric($row['s']) ? (int)$row['s'] : null;
     $m = isset($row['m']) && is_numeric($row['m']) ? (int)$row['m'] : null;
@@ -78,6 +87,12 @@ foreach ($items as $row) {
         // Always update modified info
         $updates[] = "updated_by=?"; $types .= "i"; $params[] = $userId;
         $updates[] = "updated_at=NOW()";
+        
+        if ($image_processed) {
+            $updates[] = "img1=?"; 
+            $types .= "s"; 
+            $params[] = rawurlencode($sku);
+        }
 
         if (empty($updates)) {
              $response[] = ['sku' => $sku, 'success' => true, 'message' => 'No changes detected/mapped'];
@@ -154,4 +169,87 @@ foreach ($items as $row) {
 }
 
 echo json_encode(['results' => $response]);
+
+function formatDirectDownloadUrl($url) {
+    // Google Drive
+    if (strpos($url, 'drive.google.com') !== false) {
+        if (preg_match('/\/file\/d\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
+            return "https://drive.google.com/uc?export=download&id=" . $matches[1];
+        }
+    }
+    // Dropbox
+    if (strpos($url, 'dropbox.com') !== false) {
+        $parsed = parse_url($url);
+        $query = [];
+        if (isset($parsed['query'])) {
+            parse_str($parsed['query'], $query);
+        }
+        $query['dl'] = '1'; // Force dl=1
+        
+        $newQuery = http_build_query($query);
+        $scheme = isset($parsed['scheme']) ? $parsed['scheme'] . '://' : 'https://';
+        $host = $parsed['host'] ?? '';
+        $path = $parsed['path'] ?? '';
+        
+        return $scheme . $host . $path . '?' . $newQuery;
+    }
+    return $url;
+}
+
+function processAndSaveImage($url, $sku) {
+    if (empty($url)) return false;
+
+    $url = formatDirectDownloadUrl($url);
+    
+    // Get file content
+    $image_data = @file_get_contents($url);
+    if ($image_data === false) {
+        return false;
+    }
+
+    // Create image from string (autodetect format)
+    $image = @imagecreatefromstring($image_data);
+    if ($image === false) {
+        return false;
+    }
+    
+    $skuFilename = rawurlencode($sku);
+    $targetDir = "../assets/images/products/";
+    if (!is_dir($targetDir)) mkdir($targetDir, 0755, true);
+    $targetFile = $targetDir . $skuFilename . ".webp";
+    
+    $width = imagesx($image);
+    $height = imagesy($image);
+    $maxDim = 1500; 
+
+    if ($width > $maxDim || $height > $maxDim) {
+        $ratio = $width / $height;
+        if ($width > $height) {
+            $newWidth = $maxDim;
+            $newHeight = $maxDim / $ratio;
+        } else {
+            $newHeight = $maxDim;
+            $newWidth = $maxDim * $ratio;
+        }
+        $newImage = imagecreatetruecolor($newWidth, $newHeight);
+        
+        // Preserve transparency for PNG/WebP
+        imagealphablending($newImage, false);
+        imagesavealpha($newImage, true);
+        
+        imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+        imagedestroy($image);
+        $image = $newImage;
+    } else {
+        // Ensure alpha is saved if original was small enough but had transparency
+        imagealphablending($image, false);
+        imagesavealpha($image, true);
+    }
+
+    // Save as WebP with 60% quality (matching inventory.php)
+    $saved = imagewebp($image, $targetFile, 60);
+    imagedestroy($image);
+    
+    return $saved;
+}
 ?>

@@ -58,29 +58,76 @@
                     data.forEach(p => {
                         const progress = Math.round((p.picked_items / p.total_items) * 100);
                         const card = document.createElement('div');
-                        card.className = 'bg-white rounded-xl shadow-sm p-6 border-l-4 border-indigo-500 hover:shadow-md transition-shadow glass-card';
+                        // New Premium Card Design
+                        card.className = 'group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border border-gray-100 flex flex-col h-full';
+
+                        // Platform specific colors
+                        let platformColor = 'bg-gray-100 text-gray-800';
+                        let platformIcon = 'fas fa-box';
+                        const plat = (p.platform || '').toLowerCase();
+                        if (plat.includes('myntra')) { platformColor = 'bg-pink-50 text-pink-600 border border-pink-100'; platformIcon = 'fas fa-shopping-bag'; }
+                        else if (plat.includes('amazon')) { platformColor = 'bg-yellow-50 text-yellow-700 border border-yellow-100'; platformIcon = 'fab fa-amazon'; }
+                        else if (plat.includes('flipkart')) { platformColor = 'bg-blue-50 text-blue-600 border border-blue-100'; platformIcon = 'fas fa-shopping-cart'; }
+                        else if (plat.includes('ajio')) { platformColor = 'bg-slate-800 text-white border border-slate-700'; platformIcon = 'fas fa-tag'; }
+
                         card.innerHTML = `
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded uppercase">${p.platform}</span>
-                                    <h3 class="font-bold text-gray-800 mt-2 text-lg">Picklist #${p.picklist_id}</h3>
+                            <!-- Card Header -->
+                            <div class="p-5 border-b border-gray-50 flex justify-between items-start bg-gradient-to-br from-white to-gray-50/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl ${platformColor} flex items-center justify-center shadow-sm">
+                                        <i class="${platformIcon} text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-gray-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors">#${p.picklist_id}</h3>
+                                        <div class="text-[10px] uppercase font-bold tracking-wider text-gray-400 mt-0.5">${p.platform}</div>
+                                    </div>
                                 </div>
-                                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">${new Date(p.upload_date).toLocaleDateString()}</span>
+                                <div class="text-right">
+                                    <div class="text-xs font-medium text-gray-400 bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm whitespace-nowrap">
+                                        <i class="far fa-clock mr-1"></i> ${new Date(p.upload_date).toLocaleDateString()}
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div class="mb-6">
-                                <div class="flex justify-between text-sm text-gray-600 mb-2">
-                                    <span>Progress</span>
-                                    <span class="font-bold">${p.picked_items}/${p.total_items}</span>
+                            <!-- Card Body -->
+                            <div class="p-5 flex-1 flex flex-col">
+                                <!-- Stats Grid -->
+                                <div class="grid grid-cols-3 gap-2 mb-6">
+                                    <div class="bg-indigo-50/50 rounded-xl p-2 text-center border border-indigo-100/50">
+                                        <div class="text-lg font-bold text-indigo-700 leading-none">${p.total_items}</div>
+                                        <div class="text-[10px] uppercase font-bold text-indigo-400 mt-1">Total</div>
+                                    </div>
+                                    <div class="bg-emerald-50/50 rounded-xl p-2 text-center border border-emerald-100/50">
+                                        <div class="text-lg font-bold text-emerald-700 leading-none">${p.picked_items}</div>
+                                        <div class="text-[10px] uppercase font-bold text-emerald-400 mt-1">Picked</div>
+                                    </div>
+                                    <div class="bg-orange-50/50 rounded-xl p-2 text-center border border-orange-100/50">
+                                        <div class="text-lg font-bold text-orange-700 leading-none">${p.total_items - p.picked_items}</div>
+                                        <div class="text-[10px] uppercase font-bold text-orange-400 mt-1">Left</div>
+                                    </div>
                                 </div>
-                                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                    <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: ${progress}%"></div>
+
+                                <!-- Progress -->
+                                <div class="mt-auto">
+                                    <div class="flex justify-between text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
+                                        <span>Completion</span>
+                                        <span class="text-indigo-600">${progress}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(79,70,229,0.3)]" style="width: ${progress}%"></div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <button onclick="startPicking(${p.picklist_id})" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm flex justify-center items-center gap-2">
-                                ${progress > 0 ? '<i class="fas fa-play"></i> Continue Picking' : '<i class="fas fa-play"></i> Start Picking'}
-                            </button>
+                            <!-- Card Footer -->
+                            <div class="p-4 bg-gray-50 border-t border-gray-100">
+                                <button onclick="startPicking(${p.picklist_id})" class="w-full py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 active:scale-95 transition-all flex justify-center items-center gap-2 group-hover:shadow-indigo-300 ${progress > 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}">
+                                    ${progress > 0 ?
+                                '<span>Continue Picking</span> <i class="fas fa-arrow-right"></i>' :
+                                '<i class="fas fa-play"></i> <span>Start Task</span>'
+                            }
+                                </button>
+                            </div>
                         `;
                         container.appendChild(card);
                     });
@@ -88,7 +135,18 @@
         }
 
         function startPicking(id) {
-            window.location.href = `pick.html?id=${id}`;
+            // Call API to mark as started
+            fetch('../api/picklist.php?action=start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ picklist_id: id })
+            }).then(() => {
+                window.location.href = `pick.html?id=${id}`;
+            }).catch(err => {
+                console.error("Error starting picklist:", err);
+                // Redirect anyway
+                window.location.href = `pick.html?id=${id}`;
+            });
         }
 
         // Logout is handled by navbar.js

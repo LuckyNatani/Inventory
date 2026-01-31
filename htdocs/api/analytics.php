@@ -25,26 +25,21 @@ function getDateCondition($range, $dateColumn = 'date', $start = '', $end = '') 
 }
 
 if ($action === 'stats') {
-    $cond = getDateCondition($range, 'date', $start_date, $end_date);
+    $cond = getDateCondition($range, 'upload_date', $start_date, $end_date);
     
-    // 1. Overall Summary (from platform_orders_summary)
-    // 1. Overall Summary (from platform_orders_summary)
-    // 1. Overall Summary (from platform_orders_summary)
+    // 1. Overall Summary (from picklists)
     $sql = "SELECT 
-        COALESCE(SUM(total_orders), 0) as total_orders,
-        COALESCE(SUM(pending_orders), 0) as real_pending,
-        COALESCE(SUM(not_picked_orders), 0) as not_picked,
-        COALESCE(SUM(partial_orders), 0) as partial,
-        COALESCE(SUM(not_found_orders), 0) as not_found,
-        COALESCE(SUM(fulfilled_orders), 0) as picked_orders
-        FROM platform_orders_summary 
+        COALESCE(SUM(total_items), 0) as total_orders,
+        COALESCE(SUM(pending_items), 0) as real_pending,
+        COALESCE(SUM(picked_items), 0) as picked_orders
+        FROM picklists 
         WHERE $cond";
         
     $result = $mysqli->query($sql)->fetch_assoc();
 
     // Aggregated Pending for Card
-    // Pending = Not Picked + Partial + Not Found + (Real Pending if any exist)
-    $result['pending_orders'] = $result['not_picked'] + $result['partial'] + $result['not_found'] + $result['real_pending'];
+    // Pending = real_pending (which now includes everything not fulfilled)
+    $result['pending_orders'] = $result['real_pending'];
     
     // Get Substitution Count
     // Align with Order Date (upload_date) to match other cards
@@ -67,11 +62,9 @@ if ($action === 'stats') {
     $result['completed_orders'] = $resComp['completed'];
     
     // 2. Platform Breakdown
-    // Use JOIN to get platform name from picklists table to ensure accuracy
-    $condPlatform = getDateCondition($range, 's.date', $start_date, $end_date);
-    $sqlPlatform = "SELECT p.platform, COALESCE(SUM(s.total_orders), 0) as count 
-                    FROM platform_orders_summary s
-                    JOIN picklists p ON s.picklist_id = p.picklist_id
+    $condPlatform = getDateCondition($range, 'p.upload_date', $start_date, $end_date);
+    $sqlPlatform = "SELECT p.platform, COALESCE(SUM(p.total_items), 0) as count 
+                    FROM picklists p
                     WHERE $condPlatform 
                     GROUP BY p.platform";
     $resPlatform = $mysqli->query($sqlPlatform);
@@ -86,11 +79,11 @@ if ($action === 'stats') {
     // We should use platform_orders_summary consistently for all date ranges to match the "Total Orders" summary card.
     // Previously, 'today' used the 'picklists' table which counted batches/picklists instead of calculating total orders, causing discrepancies (e.g., 3 picklists vs 6 total orders).
     
-    $sqlTrend = "SELECT DATE_FORMAT(date, '%Y-%m-%d') as label, COALESCE(SUM(total_orders), 0) as value 
-                 FROM platform_orders_summary 
+    $sqlTrend = "SELECT DATE_FORMAT(upload_date, '%Y-%m-%d') as label, COALESCE(SUM(total_items), 0) as value 
+                 FROM picklists 
                  WHERE $cond 
-                 GROUP BY DATE(date) 
-                 ORDER BY DATE(date)";
+                 GROUP BY DATE(upload_date) 
+                 ORDER BY DATE(upload_date)";
     
     $resTrend = $mysqli->query($sqlTrend);
     while($row = $resTrend->fetch_assoc()) {
@@ -174,8 +167,8 @@ if ($action === 'stats') {
     $statusClause = "1";
     $statusClause = "1";
     if ($type === 'pending') {
-        // Pending Card includes: pending, not_picked, partial, not_found
-        $statusClause = "pi.status IN ('pending', 'not_picked', 'partial', 'not_found')";
+        // Pending Card includes: pending
+        $statusClause = "pi.status IN ('pending')";
     } elseif ($type === 'picked') {
         // Completed items (Picked + Substituted)
         $statusClause = "pi.status IN ('picked', 'substituted')";

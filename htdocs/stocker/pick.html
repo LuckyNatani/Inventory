@@ -43,8 +43,11 @@
             class="bg-white text-slate-900 p-4 shadow-sm flex justify-between items-center flex-shrink-0 z-30 border-b border-gray-100">
             <button onclick="history.back()" class="text-slate-400 hover:text-slate-900 transition-colors"><i
                     class="fas fa-arrow-left text-xl"></i></button>
-            <h1 class="font-bold text-xl text-slate-800 tracking-normal">Picklist #<span id="picklistId"
-                    class="font-mono text-indigo-700"></span></h1>
+            <div class="flex flex-col items-center">
+                <h1 class="font-bold text-xl text-slate-800 tracking-normal">Picklist #<span id="picklistId"
+                        class="font-mono text-indigo-700"></span></h1>
+                <span id="picklistDate" class="text-xs text-slate-500 font-medium"></span>
+            </div>
             <div class="w-8"></div> <!-- Spacer for centering -->
         </header>
 
@@ -57,9 +60,7 @@
                 <button onclick="applyFilter('pending')"
                     class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all"
                     data-filter="pending">Pending</button>
-                <button onclick="applyFilter('picked')"
-                    class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all"
-                    data-filter="picked">Picked</button>
+                <!-- Partial Filter Removed -->
             </div>
         </div>
 
@@ -143,7 +144,7 @@
                                     class="w-24 h-12 flex items-center justify-center bg-white rounded-xl border border-indigo-200">
                                     <input type="number" id="pickedQtyInv"
                                         class="w-full text-center text-2xl font-bold text-indigo-900 bg-transparent focus:outline-none"
-                                        readonly>
+                                        onchange="manualQtyChange('inv')" onfocus="this.select()">
                                 </div>
                                 <button onclick="adjustQty('inv', 1)"
                                     class="w-12 h-12 rounded-xl bg-indigo-600 text-2xl font-bold text-white flex items-center justify-center active:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-200 hover:bg-indigo-700">+</button>
@@ -163,7 +164,7 @@
                                     class="w-24 h-12 flex items-center justify-center bg-white rounded-xl border border-orange-200">
                                     <input type="number" id="pickedQtyRet"
                                         class="w-full text-center text-2xl font-bold text-orange-900 bg-transparent focus:outline-none"
-                                        readonly>
+                                        onchange="manualQtyChange('ret')" onfocus="this.select()">
                                 </div>
                                 <button onclick="adjustQty('ret', 1)"
                                     class="w-12 h-12 rounded-xl bg-orange-500 text-2xl font-bold text-white flex items-center justify-center active:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-200 hover:bg-orange-600">+</button>
@@ -211,10 +212,7 @@
                         class="flex-1 bg-purple-50 text-purple-600 py-3 rounded-xl font-bold text-sm active:bg-purple-100 transition-colors hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed">
                         Substitute
                     </button>
-                    <button onclick="markNotFound()"
-                        class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold text-sm active:bg-red-100 transition-colors hover:bg-red-100">
-                        Not Found
-                    </button>
+                    <!-- Not Found Button Removed -->
                 </div>
                 <button onclick="confirmPick()"
                     class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-base shadow-lg shadow-indigo-200 active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-indigo-700">
@@ -241,16 +239,10 @@
                     <span class="text-green-800">Fully Picked</span>
                     <span class="font-bold text-lg text-green-700" id="sumPicked">0</span>
                 </div>
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-yellow-50">
-                    <span class="text-yellow-800">Partial</span>
-                    <span class="font-bold text-lg text-yellow-700" id="sumPartial">0</span>
-                </div>
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-red-50">
-                    <span class="text-red-800">Not Found</span>
-                    <span class="font-bold text-lg text-red-700" id="sumNotFound">0</span>
-                </div>
+                <!-- Partial Removed -->
+                <!-- Not Found Removed -->
                 <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <span class="text-gray-800">Not Picked</span>
+                    <span class="text-gray-800">Pending</span>
                     <span class="font-bold text-lg text-gray-700" id="sumNotPicked">0</span>
                 </div>
             </div>
@@ -350,6 +342,17 @@
         if (!userId) window.location.href = '../login.html';
         document.getElementById('picklistId').textContent = picklistId;
 
+        // Fetch Picklist Details (Date)
+        fetch(`../api/picklist.php?action=list&picklist_id=${picklistId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const p = data[0];
+                    const d = new Date(p.upload_date).toLocaleDateString();
+                    document.getElementById('picklistDate').textContent = d;
+                }
+            });
+
         let items = [];
         let currentFilter = 'all';
         let selectedIndex = -1;
@@ -373,8 +376,8 @@
             const filteredItems = items.filter(item => {
                 if (currentFilter === 'all') return true;
                 if (currentFilter === 'pending') {
-                    // Include pending, partial, not_found, AND not_picked in 'pending' filter
-                    return ['pending', 'partial', 'not_found', 'not_picked'].includes(item.status);
+                    // Include pending and (formerly not_picked, now just pending)
+                    return ['pending'].includes(item.status);
                 }
                 return item.status === currentFilter;
             });
@@ -385,93 +388,107 @@
             }
 
             container.innerHTML = filteredItems.map((item, index) => {
-                // Find original index in main array
                 const originalIndex = items.indexOf(item);
 
-                let statusClass = 'border-l-4 border-gray-300';
-                let btnClass = 'bg-indigo-600 text-white shadow-md shadow-indigo-200 hover:bg-indigo-700';
-                let btnText = 'Pick';
+                // Status Configuration
+                let statusConfig = {
+                    bg: 'bg-white', border: 'border-slate-100', text: 'text-slate-600',
+                    badge: 'bg-gray-100 text-gray-600', badgeText: 'Pending',
+                    btn: 'bg-indigo-600 text-white shadow-indigo-200 hover:bg-indigo-700', btnText: 'Pick'
+                };
 
                 if (item.status === 'picked') {
-                    statusClass = 'border-l-4 border-emerald-500 bg-emerald-50/50';
-                    btnClass = 'bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50';
-                    btnText = 'Edit';
-                } else if (item.status === 'partial') {
-                    statusClass = 'border-l-4 border-amber-500 bg-amber-50/50';
-                    btnClass = 'bg-white border border-amber-200 text-amber-600 hover:bg-amber-50';
-                    btnText = 'Edit';
+                    statusConfig = {
+                        bg: 'bg-emerald-50/40', border: 'border-emerald-100', text: 'text-emerald-800',
+                        badge: 'bg-emerald-100 text-emerald-700', badgeText: 'Picked',
+                        btn: 'bg-white border text-emerald-600 border-emerald-200 hover:bg-emerald-50', btnText: 'Edit'
+                    };
                 } else if (item.status === 'not_found') {
-                    statusClass = 'border-l-4 border-rose-500 bg-rose-50/50';
-                    btnClass = 'bg-white border border-rose-200 text-rose-600 hover:bg-rose-50';
-                    btnText = 'Edit';
-                } else if (item.status === 'not_picked') {
-                    // Treat as pending
-                    statusClass = 'border-l-4 border-slate-200';
-                    btnClass = 'bg-indigo-600 text-white shadow-md shadow-indigo-200 hover:bg-indigo-700';
-                    btnText = 'Pick';
+                    statusConfig = {
+                        bg: 'bg-rose-50/40', border: 'border-rose-100', text: 'text-rose-800',
+                        badge: 'bg-rose-100 text-rose-700', badgeText: 'Not Found',
+                        btn: 'bg-white border text-rose-600 border-rose-200 hover:bg-rose-50', btnText: 'Edit'
+                    };
                 } else if (item.status === 'substituted') {
-                    statusClass = 'border-l-4 border-violet-500 bg-violet-50/50';
-                    btnClass = 'bg-white border border-violet-200 text-violet-600 hover:bg-violet-50';
-                    btnText = 'Done';
+                    statusConfig = {
+                        bg: 'bg-violet-50/40', border: 'border-violet-100', text: 'text-violet-800',
+                        badge: 'bg-violet-100 text-violet-700', badgeText: 'Substituted',
+                        btn: 'bg-white border text-violet-600 border-violet-200 hover:bg-violet-50', btnText: 'Done'
+                    };
                 }
 
-                // Handle multiple racks for list view
+                // Racks
                 const racks = (item.rack_location || '').split(',').map(r => r.trim()).filter(r => r);
                 const uniqueRacks = [...new Set(racks)];
                 const rackHtml = uniqueRacks.length > 0
-                    ? uniqueRacks.map(r => `<span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 border border-gray-200">${r}</span>`).join(' ')
-                    : '<span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-600">UNKNOWN</span>';
+                    ? uniqueRacks.map(r => `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">${r}</span>`).join('')
+                    : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-400">NO RACK</span>';
 
-                let baseImgUrl = (typeof CONFIG !== 'undefined' && CONFIG.IMAGE_BASE_URL) ? CONFIG.IMAGE_BASE_URL :
-                    "../assets/images/products/";
+                // Image
+                let baseImgUrl = (typeof CONFIG !== 'undefined' && CONFIG.IMAGE_BASE_URL) ? CONFIG.IMAGE_BASE_URL : "../assets/images/products/";
                 if (!baseImgUrl.startsWith('/') && !baseImgUrl.startsWith('http') && !baseImgUrl.startsWith('..')) {
                     baseImgUrl = "../" + baseImgUrl;
                 }
-                // item.image_url holds encoded SKU path from API
                 const imgPath = item.image_url || encodeURIComponent(item.sku || '').replace(/%20/g, '%2520');
                 const fullImgUrl = `${baseImgUrl}${imgPath}.webp`;
 
+                const mainPicked = (item.quantity_picked || 0) - (item.quantity_return || 0);
+
                 return `
-    <div
-        class="bg-white rounded-xl shadow-sm p-3 flex gap-3 items-center ${statusClass} transition-all hover:shadow-md">
-        <div class="h-16 w-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-            <img src="${fullImgUrl}" onerror="this.style.display='none'" class="w-full h-full object-cover">
-        </div>
-        <div class="flex-1 min-w-0">
-            <div class="mb-1">
-                <h3 class="font-bold text-lg text-slate-800 truncate tracking-normal font-mono">${item.sku}</h3>
-            </div>
+                <div class="relative group transition-all duration-300 transform hover:-translate-y-0.5">
+                    <!-- Status Indicator Line -->
+                    <div class="absolute left-0 top-4 bottom-4 w-1 rounded-r ${statusConfig.badge.split(' ')[0]}"></div>
+                    
+                    <div class="ml-3 bg-white rounded-2xl p-4 shadow-sm border ${statusConfig.border} hover:shadow-md transition-shadow">
+                        <div class="flex gap-4">
+                            <!-- Image -->
+                            <div class="w-20 h-24 bg-gray-50 rounded-xl overflow-hidden shadow-inner flex-shrink-0 relative">
+                                <img src="${fullImgUrl}" onerror="this.src='../assets/img/placeholder.png'" class="w-full h-full object-cover">
+                            </div>
 
-            <div class="flex flex-wrap gap-1 mb-1">
-                ${rackHtml}
-            </div>
+                            <!-- Content -->
+                            <div class="flex-1 min-w-0 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h3 class="font-bold text-lg text-slate-800 leading-tight font-mono tracking-tight truncate pr-2">${item.sku}</h3>
+                                        <span class="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-widest ${statusConfig.badge}">${statusConfig.badgeText}</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1 mb-2 opacity-80">
+                                        ${rackHtml}
+                                    </div>
+                                </div>
 
-            <div class="flex items-center gap-3">
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Size: <span class="text-slate-900 text-sm">${item.size}</span></p>
-                <span class="text-slate-300">|</span>
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Qty: <span class="text-slate-900 text-sm">${item.quantity_required}</span></span>
-            </div>
-            ${!['pending', 'not_picked'].includes(item.status) ?
-                        `<div class="mt-1">
-                <span class="text-xs font-bold ${item.status === 'picked' ? 'text-green-600' : 'text-yellow-600'}">
-                    (Picked: ${item.quantity_picked})
-                </span>
-                ${(item.quantity_return && item.quantity_return > 0) ?
-                            `<span class="text-xs font-bold text-orange-600 ml-1">
-                    (Ret: ${item.quantity_return})
-                </span>` : ''}
-                ${(item.substituted_quantity && item.substituted_quantity > 0) ?
-                            `<span class="text-xs font-bold text-violet-600 ml-1">
-                    (Sub: ${item.substituted_quantity})
-                </span>` : ''}
-            </div>` : ''}
-        </div>
-        <button onclick="openPickModal(${originalIndex})"
-            class="px-5 py-2 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition-all ${btnClass}">
-            ${btnText}
-        </button>
-    </div>
-    `;
+                                <div class="flex items-end justify-between gap-2">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Size</span>
+                                            <span class="font-bold text-slate-700 text-sm">${item.size}</span>
+                                        </div>
+                                        <div class="w-px h-6 bg-slate-100"></div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Qty</span>
+                                            <span class="font-bold text-slate-900 text-lg">${item.quantity_required}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <button onclick="openPickModal(${originalIndex})" 
+                                        class="px-5 py-2 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 whitespace-nowrap ${statusConfig.btn}">
+                                        ${statusConfig.btnText}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${!['pending', 'not_found'].includes(item.status) ? `
+                        <div class="mt-3 pt-3 border-t border-slate-50 flex gap-3 text-xs font-medium">
+                            ${mainPicked > 0 ? `<span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded flex items-center gap-1"><i class="fas fa-check-circle text-[10px]"></i> Main: ${mainPicked}</span>` : ''}
+                            ${(item.quantity_return > 0) ? `<span class="text-orange-600 bg-orange-50 px-2 py-0.5 rounded flex items-center gap-1"><i class="fas fa-undo text-[10px]"></i> Ret: ${item.quantity_return}</span>` : ''}
+                            ${(item.substituted_quantity > 0) ? `<span class="text-violet-600 bg-violet-50 px-2 py-0.5 rounded flex items-center gap-1"><i class="fas fa-exchange-alt text-[10px]"></i> Sub: ${item.substituted_quantity}</span>` : ''}
+                            ${(item.quantity_pending > 0) ? `<span class="text-slate-500 bg-slate-50 px-2 py-0.5 rounded flex items-center gap-1"><i class="fas fa-clock text-[10px]"></i> Left: ${item.quantity_pending}</span>` : ''}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>`;
             }).join('');
         }
 
@@ -504,39 +521,50 @@
             ).join('');
 
             // Init Quantity
-            // If editing, use stored numbers. If fresh, default to 0 for both (user picks up as they go)
-            // Or should we default Inv to required?
-            // User flow: usually they pick full from inv.
-            // Let's default Inventory to (TotalPicked - ReturnPicked) OR Required if pending.
+            // Use values from item directly to respect partial/returns even if status seems off
+            let totalPicked = parseInt(item.quantity_picked || 0);
+            let retPicked = parseInt(item.quantity_return || 0);
 
-            let totalPicked = 0;
-            let retPicked = 0;
-
-            if (['pending', 'not_picked'].includes(item.status)) {
-                // Default: Assume picking full qty from inventory
-                const subQty = parseInt(item.substituted_quantity || 0);
-                totalPicked = Math.max(0, item.quantity_required - subQty);
-                retPicked = 0;
-            } else {
-                totalPicked = parseInt(item.quantity_picked || 0);
-                retPicked = parseInt(item.quantity_return || 0);
-            }
+            // If completely fresh (pending and no interaction), default logic (User picking full?)
+            // But if user has entered 0 return and 0 picked, it is pending.
+            // If user has 5 return, but status is pending? (Shouldn't happen, but safeguard).
 
             // Calculate Inventory Picked
             let invPicked = Math.max(0, totalPicked - retPicked);
 
-            document.getElementById('pickedQtyInv').value = invPicked;
-            // Set substituted qty
-            const subQty = parseInt(item.substituted_quantity || 0);
-            document.getElementById('pickedQtySub').textContent = subQty;
-            document.getElementById('subDetailsText').textContent = item.substituted_details || 'N/A';
+            // If everything is 0 and status is pending, we can default to Suggested Full Pick?
+            // "Default Inventory to (TotalPicked - ReturnPicked) OR Required if pending"
+            // The requirement says: "Ret shows 5 quantity but when clicked on edit it shows zero return and 5 remaining"
+            // This means we must trust the item.quantity_return.
+            if (['pending'].includes(item.status) && totalPicked === 0 && retPicked === 0) {
+                const subQty = parseInt(item.substituted_quantity || 0);
+                invPicked = Math.max(0, item.quantity_required - subQty);
+                retPicked = 0;
+            }
 
-            if (subQty > 0) document.getElementById('subCard').classList.remove('hidden');
+            document.getElementById('pickedQtyInv').value = invPicked;
+            document.getElementById('pickedQtyRet').value = retPicked;
+            // Set substituted qty
+            // Set substituted qty (Committed + Pending)
+            const subQty = parseInt(item.substituted_quantity || 0);
+            const pendingSub = item.pendingSubstitution ? parseInt(item.pendingSubstitution.substitute_quantity) : 0;
+            const totalSub = subQty + pendingSub;
+
+            document.getElementById('pickedQtySub').textContent = totalSub;
+
+            let det = item.substituted_details || 'N/A';
+            if (item.pendingSubstitution) {
+                if (det === 'N/A') det = '';
+                else det += ', ';
+                det += `${item.pendingSubstitution.substitute_sku} (${item.pendingSubstitution.substitute_size}) [PENDING]`;
+            }
+            document.getElementById('subDetailsText').textContent = det;
+
+            if (totalSub > 0) document.getElementById('subCard').classList.remove('hidden');
             else document.getElementById('subCard').classList.add('hidden');
 
             // Initial button state
-            const isFull = (invPicked + retPicked + subQty) >= item.quantity_required;
-            document.getElementById('btnOpenSub').disabled = isFull;
+            updatePickButtonState();
 
             updateProgress();
 
@@ -600,17 +628,37 @@
             invInput.value = invVal;
             retInput.value = retVal;
 
+            updatePickButtonState();
+            updateProgress();
+        }
+
+        function manualQtyChange(type) {
+            const item = items[selectedIndex];
+            const invInput = document.getElementById('pickedQtyInv');
+            const retInput = document.getElementById('pickedQtyRet');
+
+            let invVal = parseInt(invInput.value) || 0;
+            let retVal = parseInt(retInput.value) || 0;
+
+            if (invVal < 0) invVal = 0;
+            if (retVal < 0) retVal = 0;
+
+            const subVal = parseInt(document.getElementById('pickedQtySub').textContent) || 0;
+            let currentTotal = invVal + retVal + subVal;
+
+            if (currentTotal > item.quantity_required) {
+                const maxAllowed = Math.max(0, item.quantity_required - subVal);
+                if (type === 'inv') {
+                    invVal = Math.max(0, maxAllowed - retVal);
+                } else {
+                    retVal = Math.max(0, maxAllowed - invVal);
+                }
+            }
+
             invInput.value = invVal;
             retInput.value = retVal;
 
-            // Disable Substitute if satisfied
-            // subVal already defined above
-            const currentTotal = invVal + retVal + subVal;
-            const isFull = currentTotal >= item.quantity_required;
-
-            const btnSub = document.getElementById('btnOpenSub');
-            if (btnSub) btnSub.disabled = isFull;
-
+            updatePickButtonState();
             updateProgress();
         }
 
@@ -640,21 +688,86 @@
             }
         }
 
-        function confirmPick() {
+        function updatePickButtonState() {
+            const item = items[selectedIndex];
             const invVal = parseInt(document.getElementById('pickedQtyInv').value) || 0;
             const retVal = parseInt(document.getElementById('pickedQtyRet').value) || 0;
             const subVal = parseInt(document.getElementById('pickedQtySub').textContent) || 0;
 
-            const totalQty = invVal + retVal; // This is what we sent as 'picked' (main + return)
-            const grandTotal = totalQty + subVal; // Total fulfilled including substitution
+            const currentTotal = invVal + retVal + subVal;
+            const remaining = item.quantity_required - currentTotal;
+            const btn = document.querySelector('button[onclick="confirmPick()"]');
+            const btnSub = document.getElementById('btnOpenSub');
 
+            // 1. Update Sub Button
+            if (btnSub) {
+                btnSub.disabled = remaining <= 0;
+                // Change text if sub exists
+                const subVal = parseInt(document.getElementById('pickedQtySub').textContent) || 0;
+                if (subVal > 0 || item.pendingSubstitution) {
+                    btnSub.textContent = "Edit Substitution";
+                } else {
+                    btnSub.textContent = "Substitute";
+                }
+            }
+
+            // 2. Update Confirm Button
+            // Reset classes
+            btn.className = "w-full py-4 rounded-xl font-bold text-base shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-white";
+
+            if (remaining > 0) {
+                // Pending State
+                btn.classList.add('bg-yellow-500', 'shadow-yellow-200', 'hover:bg-yellow-600');
+                btn.innerHTML = `Confirm Pick (Leave ${remaining} Pending) <i class="fas fa-exclamation-triangle"></i>`;
+            } else {
+                // Complete State
+                btn.classList.add('bg-indigo-600', 'shadow-indigo-200', 'hover:bg-indigo-700');
+                btn.innerHTML = `Confirm Pick <i class="fas fa-check"></i>`;
+            }
+        }
+
+        async function confirmPick() {
             const item = items[selectedIndex];
+            const invVal = parseInt(document.getElementById('pickedQtyInv').value) || 0;
+            const retVal = parseInt(document.getElementById('pickedQtyRet').value) || 0;
+            // pendingSubstitution might be set, or existing subs
+            const subVal = parseInt(document.getElementById('pickedQtySub').textContent) || 0;
+
+            // Calculate Status
+            const totalQty = invVal + retVal;
+            const grandTotal = totalQty + subVal;
 
             let status = 'picked';
-            if (grandTotal === 0) status = 'not_found';
-            else if (grandTotal < item.quantity_required) status = 'partial';
-            else if (grandTotal >= item.quantity_required) status = 'picked';
+            // If grandTotal < required, it's effectively PENDING now, not partial
+            if (grandTotal < item.quantity_required) status = 'pending';
+            else status = 'picked';
 
+            // Check for Pending Substitution
+            if (item.pendingSubstitution) {
+                try {
+                    // 1. Execute Substitution
+                    const subRes = await fetch('../api/substitution.php?action=substitute', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(item.pendingSubstitution)
+                    });
+                    const subData = await subRes.json();
+
+                    if (!subData.success) {
+                        alert("Failed to submit substitution: " + (subData.error || 'Unknown Error'));
+                        return;
+                    }
+
+                    // Clear pending
+                    delete item.pendingSubstitution;
+
+                } catch (e) {
+                    alert("Network error processing substitution: " + e.message);
+                    return;
+                }
+            }
+
+            // 2. Submit Pick
             submitPick(totalQty, retVal, status);
         }
 
@@ -702,17 +815,17 @@
         function goToSummary() {
             // Calculate Stats locally
             const total = items.length;
-            const notPicked = items.filter(i => ['not_picked', 'pending'].includes(i.status)).length;
+            const notPicked = items.filter(i => ['pending'].includes(i.status)).length;
             const picked = items.filter(i => i.status === 'picked').length;
-            const partial = items.filter(i => i.status === 'partial').length;
-            const notFound = items.filter(i => i.status === 'not_found').length;
+            // Removed partial count
+            // Removed not_found count
 
             // Populate View
             document.getElementById('sumPicklistId').textContent = picklistId;
             document.getElementById('sumTotal').textContent = total;
             document.getElementById('sumPicked').textContent = picked;
-            document.getElementById('sumPartial').textContent = partial;
-            document.getElementById('sumNotFound').textContent = notFound;
+            // document.getElementById('sumPartial').textContent = partial;
+            // document.getElementById('sumNotFound').textContent = notFound;
             document.getElementById('sumNotPicked').textContent = notPicked;
 
             // Toggle Views
@@ -899,8 +1012,19 @@
                 return;
             }
 
-            if (subQtyVal > maxQty) {
-                alert(`Cannot substitute more than ${maxQty} (Remaining needed)`);
+            // Client-side valid check (maxQty is derived from remaining needed)
+            // But user might have changed pickedQty in background? No modal is blocking.
+            // Re-calc max allowed
+            const invVal = parseInt(document.getElementById('pickedQtyInv').value) || 0;
+            const retVal = parseInt(document.getElementById('pickedQtyRet').value) || 0;
+            const currentSub = parseInt(item.substituted_quantity || 0); // Committed sub
+            // We are adding NEW sub. 
+            // Total <= Required
+            const currentTotal = invVal + retVal + currentSub;
+            const allowed = item.quantity_required - currentTotal;
+
+            if (subQtyVal > allowed) {
+                alert(`Cannot substitute more than ${allowed}`);
                 return;
             }
 
@@ -908,30 +1032,39 @@
                 original_item_id: item.item_id,
                 substitute_sku: selectedSubInv.sku,
                 substitute_size: document.getElementById('selSubSize').value,
-                substitute_size: document.getElementById('selSubSize').value,
-                substitute_quantity: document.getElementById('selSubQty').value,
+                substitute_quantity: subQtyVal,
                 reason: document.getElementById('subReason').value || 'Picker Substitution',
                 user_id: userId
             };
 
-            fetch('../api/substitution.php?action=substitute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Substitution successful!');
-                        closeSubModal();
+            // DEFER: Save to local item check
+            item.pendingSubstitution = payload;
 
-                        // Don't close pick modal. Refresh data instead.
-                        fetchItemsAndRefreshPickModal();
-                    } else {
-                        alert('Error: ' + (data.error || 'Unknown error'));
-                    }
-                })
-                .catch(err => alert('Error: ' + err.message));
+            // Update UI to reflect this "Pending" substitution
+            // We treat pendingSubstitution as if it's real for the display
+
+            // Note: If there was already a pending sub, this overwrites it (one sub per item per session for simplicity?)
+            // Or should we append? Let's assume one sub action per pick session for now or complex logic needed.
+            // Ideally, we sum them up. But for now, let's just use this one.
+
+            // Update modal display
+            const committedSub = parseInt(item.substituted_quantity || 0);
+            const totalSub = committedSub + subQtyVal;
+
+            document.getElementById('pickedQtySub').textContent = totalSub;
+
+            let details = item.substituted_details || '';
+            if (details) details += ', ';
+            details += `${payload.substitute_sku} (${payload.substitute_size}) [PENDING]`;
+            document.getElementById('subDetailsText').textContent = details;
+
+            document.getElementById('subCard').classList.remove('hidden');
+
+            closeSubModal();
+            updatePickButtonState();
+            updateProgress();
+
+            // Don't fetchItemsAndRefreshPickModal - that would wipe our local pending state!
         }
 
         function fetchItemsAndRefreshPickModal() {

@@ -22,31 +22,7 @@ function logAudit($inventory_id, $sku, $action, $field, $old_val, $new_val, $qty
 function updatePicklistSummary($picklist_id) {
     global $mysqli;
     
-    // 1. Get Order Stats
-    // 1. Get Order Stats
-    // Since we removed order_reference, 1 item = 1 order.
-    $sql = "SELECT COUNT(*) as total, 
-                   SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                   SUM(CASE WHEN status = 'picked' THEN 1 ELSE 0 END) as fulfilled,
-                   SUM(CASE WHEN status = 'partial' THEN 1 ELSE 0 END) as partial,
-                   SUM(CASE WHEN status = 'not_found' THEN 1 ELSE 0 END) as not_found,
-                   SUM(CASE WHEN status = 'not_picked' THEN 1 ELSE 0 END) as not_picked
-            FROM picklist_items 
-            WHERE picklist_id = $picklist_id";
-    $res = $mysqli->query($sql)->fetch_assoc();
-    
-    $total_orders = $res['total'];
-    $pending_orders = $res['pending'];
-    $fulfilled = $res['fulfilled']; 
-    $partial = $res['partial'];
-    $not_found = $res['not_found'];
-    $not_picked = $res['not_picked'];
-
-    // User Request: Pending order = not_picked + partial + not_found
-    // We will store actual counts in DB columns and aggregate in Analytics.
-    // Fulfilled is strictly 'picked'.
-    
-    // 2. Get Quantities
+    // 1. Get Quantities from Items
     $sqlQty = "SELECT SUM(quantity_required) as total_qty, 
                       SUM(quantity_picked) as picked_qty 
                FROM picklist_items 
@@ -55,46 +31,35 @@ function updatePicklistSummary($picklist_id) {
     $total_quantity = $resQty['total_qty'] ?? 0;
     $picked_quantity = $resQty['picked_qty'] ?? 0;
     
-    // Substituted Qty
+    // 2. Substituted Qty
     $sqlSub = "SELECT SUM(s.substitute_quantity) as sub_qty 
                FROM substitutions s
                JOIN picklist_items pi ON s.original_item_id = pi.item_id
-               WHERE picklist_id = $picklist_id";
+               WHERE pi.picklist_id = $picklist_id";
     $resSub = $mysqli->query($sqlSub)->fetch_assoc();
     $substituted_quantity = $resSub['sub_qty'] ?? 0;
     
-    // 3. Update Summary Table
-    $check = $mysqli->query("SELECT summary_id FROM platform_orders_summary WHERE picklist_id = $picklist_id");
-    if ($check->num_rows > 0) {
-        // Fetch current platform from picklists table first, to ensure summary is in sync
-        $pRes = $mysqli->query("SELECT platform FROM picklists WHERE picklist_id = $picklist_id");
-        $platform = ($pRes && $pRes->num_rows > 0) ? $pRes->fetch_assoc()['platform'] : '';
+    // 3. Update Picklists Table
+    // Also update item counts here to ensure everything is in sync
+    $sqlCounts = "SELECT COUNT(*) as total, 
+                   SUM(CASE WHEN status = 'picked' THEN 1 ELSE 0 END) as picked,
+                   SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+            FROM picklist_items 
+            WHERE picklist_id = $picklist_id";
+    $resCounts = $mysqli->query($sqlCounts)->fetch_assoc();
+    
+    $total_items = $resCounts['total'];
+    $picked_items = $resCounts['picked'];
+    $pending_items = $resCounts['pending'];
 
-        $stmt = $mysqli->prepare("UPDATE platform_orders_summary SET 
-            total_orders=?, fulfilled_orders=?, partial_orders=?, pending_orders=?, 
-            not_picked_orders=?, not_found_orders=?,
-            total_quantity=?, picked_quantity=?, substituted_quantity=?,
-            platform=? 
-            WHERE picklist_id=?");
-        $stmt->bind_param("iiiiiiiiisi", $total_orders, $fulfilled, $partial, $pending_orders, 
-                          $not_picked, $not_found,
-                          $total_quantity, $picked_quantity, $substituted_quantity, $platform, $picklist_id);
-        $stmt->execute();
-    } else {
-        $pRes = $mysqli->query("SELECT platform, DATE(upload_date) as udate FROM picklists WHERE picklist_id = $picklist_id");
-        if ($pRes && $pRes->num_rows > 0) {
-            $pRow = $pRes->fetch_assoc();
-            $platform = $pRow['platform'];
-            $date = $pRow['udate'];
-            
-            $stmt = $mysqli->prepare("INSERT INTO platform_orders_summary 
-                (picklist_id, platform, date, total_orders, fulfilled_orders, partial_orders, pending_orders, not_picked_orders, not_found_orders, total_quantity, picked_quantity, substituted_quantity) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("issiiiiiiiii", $picklist_id, $platform, $date, $total_orders, $fulfilled, $partial, $pending_orders, $not_picked, $not_found,
-                              $total_quantity, $picked_quantity, $substituted_quantity);
-            $stmt->execute();
-        }
-    }
+    $stmt = $mysqli->prepare("UPDATE picklists SET 
+        total_items=?, picked_items=?, pending_items=?,
+        total_quantity=?, picked_quantity=?, substituted_quantity=?
+        WHERE picklist_id=?");
+        
+    $stmt->bind_param("iiiiiii", $total_items, $picked_items, $pending_items, 
+                      $total_quantity, $picked_quantity, $substituted_quantity, $picklist_id);
+    $stmt->execute();
 }
 
 if ($action === 'upload') {
@@ -153,10 +118,12 @@ if ($action === 'upload') {
 } elseif ($action === 'list') {
     $status = escape($_GET['status'] ?? '');
     $picker_id = escape($_GET['picker_id'] ?? '');
+    $picklist_id = escape($_GET['picklist_id'] ?? '');
     
     $where = "WHERE 1";
     if ($status && $status !== 'All') $where .= " AND status = '$status'";
     if ($picker_id) $where .= " AND assigned_to = $picker_id";
+    if ($picklist_id) $where .= " AND p.picklist_id = $picklist_id"; // Use p.picklist_id
 
     $res = $mysqli->query("SELECT p.*, u.username as picker_name FROM picklists p LEFT JOIN users u ON p.assigned_to = u.sno $where ORDER BY upload_date DESC");
     $list = [];
@@ -170,7 +137,16 @@ if ($action === 'upload') {
     $picklist_id = (int)$data['picklist_id'];
     $picker_id = (int)$data['picker_id'];
     
-    $mysqli->query("UPDATE picklists SET assigned_to=$picker_id, status='in_progress', started_at=NOW() WHERE picklist_id=$picklist_id");
+    // Status in_progress, but started_at is NOT set here
+    $mysqli->query("UPDATE picklists SET assigned_to=$picker_id, status='in_progress' WHERE picklist_id=$picklist_id");
+    echo json_encode(["success" => true]);
+
+} elseif ($action === 'start') {
+    $data = json_decode(file_get_contents("php://input"), true);
+    $picklist_id = (int)$data['picklist_id'];
+    
+    // Only set started_at if it's NULL
+    $mysqli->query("UPDATE picklists SET status='in_progress', started_at=COALESCE(started_at, NOW()) WHERE picklist_id=$picklist_id");
     echo json_encode(["success" => true]);
 
 } elseif ($action === 'pick_item') {
@@ -191,8 +167,19 @@ if ($action === 'upload') {
         exit;
     }
 
+    // Get Substituted Quantity for this item
+    $subRes = $mysqli->query("SELECT SUM(substitute_quantity) as sub_qty FROM substitutions WHERE original_item_id = $item_id");
+    $subData = $subRes->fetch_assoc();
+    $qty_substituted = (int)($subData['sub_qty'] ?? 0);
+
     // Update picklist item with both quantities
-    $qty_pending = $item['quantity_required'] - $qty_picked;
+    // Pending = Required - Picked - Substituted
+    $qty_pending = max(0, $item['quantity_required'] - $qty_picked - $qty_substituted);
+    
+    // If pending is 0, status should be 'picked' or 'substituted' (if not already set)
+    // The frontend sends the status, but if we recalculated pending to 0 and status was partial, we might want to update it?
+    // For now, trust the status sent BUT if pending is 0, ensure we don't leave it as 'pending' (though frontend shouldn't send 'pending' if it thinks it's done)
+    
     $mysqli->query("UPDATE picklist_items SET quantity_picked=$qty_picked, quantity_return=$qty_return, quantity_pending=$qty_pending, status='$status', picked_at=NOW(), picked_by=$user_id, notes='$notes' WHERE item_id=$item_id");
 
     // Update Inventory & Log Audit
@@ -229,7 +216,7 @@ if ($action === 'upload') {
     $pid = $item['picklist_id'];
     $mysqli->query("UPDATE picklists p
                     SET 
-                        p.picked_items = (SELECT COUNT(*) FROM picklist_items WHERE picklist_id = $pid AND status IN ('picked', 'partial', 'not_found')),
+                        p.picked_items = (SELECT COUNT(*) FROM picklist_items WHERE picklist_id = $pid AND status IN ('picked')),
                         p.pending_items = (SELECT COUNT(*) FROM picklist_items WHERE picklist_id = $pid AND status = 'pending')
                     WHERE p.picklist_id = $pid");
 
@@ -246,19 +233,18 @@ if ($action === 'upload') {
     $res = $mysqli->query("SELECT COUNT(*) as pending FROM picklist_items WHERE picklist_id=$picklist_id AND status='pending'");
     $pending = $res->fetch_assoc()['pending'];
     
-    // Check for not_picked items (if any were manually set)
-    $res2 = $mysqli->query("SELECT COUNT(*) as not_picked FROM picklist_items WHERE picklist_id=$picklist_id AND status='not_picked'");
-    $not_picked = $res2->fetch_assoc()['not_picked'];
-
-    if ($pending > 0 || $not_picked > 0) {
-        echo json_encode(["success" => false, "error" => "Cannot submit. All items must be processed (Picked, Partial, or Not Found)."]);
+    if ($pending > 0) {
+        echo json_encode(["success" => false, "error" => "Cannot submit. Please process all pending items."]);
         exit;
     }
+
+    // Determine Status
+    $status = 'completed';
     
-    $status = 'completed'; // If we are here, everything is resolved.
-    
-    $mysqli->query("UPDATE picklists SET status='$status', completed_at=NOW() WHERE picklist_id=$picklist_id");
-    
+    // Update Picklist Status
+    $current_time = date('Y-m-d H:i:s');
+    $mysqli->query("UPDATE picklists SET status = '$status', completed_at = '$current_time' WHERE picklist_id = $picklist_id");
+
     echo json_encode(["success" => true, "status" => $status]);
 
 } elseif ($action === 'pickers') {

@@ -109,121 +109,177 @@
       </div>
 
       <div id="addProductContent" class="hidden transition-all duration-300 ease-in-out mt-2">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-2 mb-4">
-          <div class="lg:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Product Details</label>
-            <div class="flex flex-col md:flex-row gap-4">
-              <input type="text" id="sku" placeholder="SKU / Product Name"
-                class="flex-1 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                required />
-              <select id="category" required
-                class="p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white">
-                <option value="" disabled selected>Select Category</option>
-              </select>
-            </div>
-          </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
-          <div class="lg:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Size Distribution</label>
-            <div class="grid grid-cols-6 gap-3">
-              <div>
-                <label for="s" class="text-xs text-gray-500 text-center block mb-1">S</label>
-                <input type="text" id="s" placeholder="0"
-                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-              <div>
-                <label for="m" class="text-xs text-gray-500 text-center block mb-1">M</label>
-                <input type="text" id="m" placeholder="0"
-                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-              <div>
-                <label for="l" class="text-xs text-gray-500 text-center block mb-1">L</label>
-                <input type="text" id="l" placeholder="0"
-                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-              <div>
-                <label for="xl" class="text-xs text-gray-500 text-center block mb-1">XL</label>
-                <input type="text" id="xl" placeholder="0"
-                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-              <div>
-                <label for="xxl" class="text-xs text-gray-500 text-center block mb-1">2XL</label>
-                <input type="text" id="xxl" placeholder="0"
-                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-              <div>
-                <label for="xxxl" class="text-xs text-gray-500 text-center block mb-1">3XL</label>
-                <input type="text" id="xxxl" placeholder="0"
-                  class="w-full p-2 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-            <div
-              class="border border-gray-300 rounded-lg p-2 focus-within:ring-2 focus-within:ring-indigo-500 bg-white transition-all">
-              <div id="rackTags" class="flex flex-wrap gap-2 mb-1 empty:hidden"></div>
-              <input type="text" id="rackInput" placeholder="Type & Enter (e.g. R1_B2)"
-                class="w-full outline-none text-sm p-1" list="rackList" />
-            </div>
-            <input type="hidden" id="rack_location" />
-            <datalist id="rackList"></datalist>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
-            <input type="file" id="imageUpload" accept="image/*"
-              class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-1" />
-
-            <img id="imagePreview" src="" alt="Preview"
-              class="hidden w-20 h-20 object-cover rounded border border-gray-200 shadow-sm" />
-          </div>
-
-
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:col-span-2">
-            <div data-role="admin">
-              <label class="block text-xs text-gray-500 mb-1">Manufacture Cost</label>
-              <input type="text" id="cost_price" placeholder="Cost" readonly
-                class="w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 focus:outline-none" />
-            </div>
-            <div data-role="admin">
-              <label class="block text-xs text-gray-500 mb-1">Purchase Cost</label>
-              <input type="number" step="0.01" id="purchase_cost" placeholder="0.00"
-                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-            </div>
+          <!-- General Info -->
+          <div class="space-y-4">
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Min Stock Alert</label>
-              <input type="number" id="min_stock_alert" value="10"
-                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Product Details</label>
+              <div class="flex flex-col gap-3 sm:flex-row">
+                <input type="text" id="sku" placeholder="SKU / Product Name"
+                  class="flex-1 p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm uppercase"
+                  required />
+                <select id="category" required
+                  class="p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm sm:w-1/3">
+                  <option value="" disabled selected>Category</option>
+                </select>
+              </div>
             </div>
 
-            <div data-role="admin">
-              <label class="block text-xs text-gray-500 mb-1">Status</label>
-              <select id="status"
-                class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                <option value="active">Active</option>
-                <option value="discontinued">Discontinued</option>
-                <option value="archived">Archived</option>
-              </select>
+
+
+            <!-- Locations & Media -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Rack Location</label>
+                <div class="relative">
+                  <div
+                    class="border border-gray-200 rounded-xl p-1 bg-gray-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all shadow-sm">
+                    <div id="rackTags" class="flex flex-wrap gap-1 mb-1 empty:hidden p-1"></div>
+                    <input type="text" id="rackInput" placeholder="Type & Enter (e.g. R1_B2)"
+                      class="w-full outline-none text-sm p-2 bg-transparent" list="rackList" />
+                  </div>
+                  <input type="hidden" id="rack_location" />
+                  <datalist id="rackList"></datalist>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Product Image</label>
+                <label
+                  class="flex flex-col items-center justify-center w-full h-[54px] border border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div class="flex items-center gap-2 text-gray-500">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span class="text-sm font-medium">Choose File</span>
+                  </div>
+                  <input type="file" id="imageUpload" accept="image/*" class="hidden" />
+                </label>
+                <img id="imagePreview" src="" alt="Preview"
+                  class="hidden mt-2 w-16 h-16 object-cover rounded-lg border border-gray-200 shadow-sm mx-auto" />
+              </div>
             </div>
           </div>
 
-          <!-- Live Links Section -->
-          <div class="mt-0 border-t border-gray-100 pt-2 lg:col-span-2">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">Live Product Links</h3>
+          <!-- Stock & Financials -->
+          <div class="space-y-4">
             <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Product Type</label>
               <div
-                class="border border-gray-300 rounded-lg p-2 focus-within:ring-2 focus-within:ring-indigo-500 bg-white transition-all">
-                <div id="linkTags" class="flex flex-wrap gap-2 mb-1 empty:hidden"></div>
-                <input type="url" id="linkInput" placeholder="Paste URL & Enter"
-                  class="w-full outline-none text-sm p-1" />
+                class="flex gap-2 p-1.5 bg-gray-100/80 rounded-xl border border-gray-200 inline-flex w-full sm:w-auto shadow-inner">
+                <label
+                  class="group flex-1 sm:flex-none flex items-center justify-center gap-2 cursor-pointer px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg transition-all duration-200 hover:bg-gray-200/50 has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-indigo-600 has-[:checked]:ring-1 has-[:checked]:ring-gray-200 relative overflow-hidden">
+                  <input type="radio" name="product_type" value="sized" checked
+                    class="peer appearance-none absolute inset-0 w-full h-full cursor-pointer z-10"
+                    onchange="toggleProductType('sized')">
+                  <i class="fas fa-tshirt text-gray-400 peer-checked:text-indigo-600 transition-colors"></i>
+                  <span
+                    class="text-xs sm:text-sm font-bold text-gray-500 peer-checked:text-indigo-700 transition-colors whitespace-nowrap">Apparel
+                    / Sized</span>
+                </label>
+
+                <label
+                  class="group flex-1 sm:flex-none flex items-center justify-center gap-2 cursor-pointer px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg transition-all duration-200 hover:bg-gray-200/50 has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-indigo-600 has-[:checked]:ring-1 has-[:checked]:ring-gray-200 relative overflow-hidden">
+                  <input type="radio" name="product_type" value="unitary"
+                    class="peer appearance-none absolute inset-0 w-full h-full cursor-pointer z-10"
+                    onchange="toggleProductType('unitary')">
+                  <i class="fas fa-box-open text-gray-400 peer-checked:text-indigo-600 transition-colors"></i>
+                  <span
+                    class="text-xs sm:text-sm font-bold text-gray-500 peer-checked:text-indigo-700 transition-colors whitespace-nowrap">Accessory
+                    / Units</span>
+                </label>
               </div>
-              <input type="hidden" id="live_links" name="live_links" />
-              <p class="text-xs text-gray-400 mt-1">Paste a URL and press Enter to add.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Stock Distribution</label>
+
+              <!-- Sized Inputs -->
+              <div id="sized_inputs" class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                <!-- Helper for reusable input style -->
+                <div class="text-center">
+                  <label for="xs" class="text-[10px] font-bold text-gray-700 uppercase mb-1 block">XS</label>
+                  <input type="text" id="xs" placeholder="0"
+                    class="w-full p-2 text-center text-sm font-bold border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                </div>
+                <div class="text-center">
+                  <label for="s" class="text-[10px] font-bold text-gray-700 uppercase mb-1 block">S</label>
+                  <input type="text" id="s" placeholder="0"
+                    class="w-full p-2 text-center text-sm font-bold border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                </div>
+                <div class="text-center">
+                  <label for="m" class="text-[10px] font-bold text-gray-700 uppercase mb-1 block">M</label>
+                  <input type="text" id="m" placeholder="0"
+                    class="w-full p-2 text-center text-sm font-bold border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                </div>
+                <div class="text-center">
+                  <label for="l" class="text-[10px] font-bold text-gray-700 uppercase mb-1 block">L</label>
+                  <input type="text" id="l" placeholder="0"
+                    class="w-full p-2 text-center text-sm font-bold border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                </div>
+                <div class="text-center">
+                  <label for="xl" class="text-[10px] font-bold text-gray-700 uppercase mb-1 block">XL</label>
+                  <input type="text" id="xl" placeholder="0"
+                    class="w-full p-2 text-center text-sm font-bold border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                </div>
+                <div class="text-center">
+                  <label for="xxl" class="text-[10px] font-bold text-gray-700 uppercase mb-1 block">2XL</label>
+                  <input type="text" id="xxl" placeholder="0"
+                    class="w-full p-2 text-center text-sm font-bold border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                </div>
+                <div class="text-center">
+                  <label for="xxxl" class="text-[10px] font-bold text-gray-700 uppercase mb-1 block">3XL</label>
+                  <input type="text" id="xxxl" placeholder="0"
+                    class="w-full p-2 text-center text-sm font-bold border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+                </div>
+              </div>
+
+              <!-- Unitary Input -->
+              <div id="unitary_inputs" class="hidden">
+                <input type="text" id="quantity" placeholder="Enter Total Quantity"
+                  class="w-full sm:w-1/2 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm" />
+              </div>
+            </div>
+
+            <!-- Cost & Status -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div data-role="admin">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Mfg Cost</label>
+                <input type="text" id="cost_price" placeholder="0.00" readonly
+                  class="w-full p-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm" />
+              </div>
+              <div data-role="admin">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Buy Cost</label>
+                <input type="number" step="0.01" id="purchase_cost" placeholder="0.00"
+                  class="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Alert Qty</label>
+                <input type="number" id="min_stock_alert" value="10"
+                  class="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
+              </div>
+              <div class="sm:col-span-3 lg:col-span-3">
+                <!-- Full width on small, grid line on large? Actually just fit wherever -->
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+                <select id="status"
+                  class="w-full p-2 border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                  <option value="active">Active</option>
+                  <option value="discontinued">Discontinued</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Bottom: Links -->
+        <div class="border-t border-gray-100 pt-4 mb-4">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Live Product Links</label>
+          <div
+            class="border border-gray-200 rounded-xl p-1 bg-gray-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all shadow-sm">
+            <div id="linkTags" class="flex flex-wrap gap-2 mb-1 empty:hidden p-1"></div>
+            <input type="url" id="linkInput" placeholder="Paste URL & Enter"
+              class="w-full outline-none text-sm p-2 bg-transparent" />
+          </div>
+          <input type="hidden" id="live_links" name="live_links" />
         </div>
 
 
@@ -301,6 +357,9 @@
                 <th scope="col"
                   class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Rack</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  XS</th>
                 <th scope="col"
                   class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                   S</th>

@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuItems = [
         { name: 'Dashboard', icon: 'fas fa-home', link: '/dashboard.html', roles: ['admin', 'sub-admin', 'production'] },
         { name: 'Inventory', icon: 'fas fa-boxes', link: '/inventory.html', roles: ['admin', 'sub-admin', 'stocker', 'viewer', 'production'] },
-        { name: 'Upload Picklist', icon: 'fas fa-cloud-upload-alt', link: '/admin/upload-picklist.html', roles: ['admin', 'sub-admin', 'production'] },
+
         { name: 'Picklists', icon: 'fas fa-clipboard-list', link: '/admin/picklists.html', roles: ['admin', 'sub-admin', 'production'] },
         { name: 'Pending Orders', icon: 'fas fa-clock', link: '/admin/pending-orders.html', roles: ['admin', 'sub-admin', 'production'] },
         { name: 'Factory Rates', icon: 'fas fa-industry', link: '/factory_rates.html', roles: ['admin', 'production'] },

@@ -79,7 +79,10 @@ function processImageUpload($tmpName, $sku) {
     if (!$image) return false;
     
     $skuFilename = rawurlencode($sku);
-    $targetDir = "../assets/images/products/";
+    // Use CLIENT_SUBDOMAIN for dynamic path
+    $subfolder = defined('CLIENT_SUBDOMAIN') ? CLIENT_SUBDOMAIN : 'default';
+    $targetDir = "../uploads/" . $subfolder . "/products/";
+    
     if (!is_dir($targetDir)) mkdir($targetDir, 0755, true);
     $targetFile = $targetDir . $skuFilename . ".webp";
     
@@ -136,24 +139,55 @@ if ($action === 'list' || $action === '') {
         $where .= " AND i.rack_location = '" . escape($rack) . "'";
     }
     if ($stock === 'low') {
-        // Updated Logic: Any size <= min_stock_alert AND Total > 0
-        $where .= " AND (s <= i.min_stock_alert OR m <= i.min_stock_alert OR l <= i.min_stock_alert OR xl <= i.min_stock_alert OR xxl <= i.min_stock_alert OR xxxl <= i.min_stock_alert) 
-                    AND (s+m+l+xl+xxl+xxxl) > 0";
+        // Updated Logic: Check based on product_type
+        // Updated to ignore NULL values for Low Stock check
+        $where .= " AND (
+                        (product_type = 'sized' AND (
+                            (xs IS NOT NULL AND xs <= i.min_stock_alert) OR 
+                            (s IS NOT NULL AND s <= i.min_stock_alert) OR 
+                            (m IS NOT NULL AND m <= i.min_stock_alert) OR 
+                            (l IS NOT NULL AND l <= i.min_stock_alert) OR 
+                            (xl IS NOT NULL AND xl <= i.min_stock_alert) OR 
+                            (xxl IS NOT NULL AND xxl <= i.min_stock_alert) OR 
+                            (xxxl IS NOT NULL AND xxxl <= i.min_stock_alert)
+                        ) AND (COALESCE(xs,0)+COALESCE(s,0)+COALESCE(m,0)+COALESCE(l,0)+COALESCE(xl,0)+COALESCE(xxl,0)+COALESCE(xxxl,0)) > 0)
+                        OR 
+                        (product_type = 'unitary' AND quantity <= i.min_stock_alert AND quantity > 0)
+                    )";
     } elseif ($stock === 'zero') {
-        $where .= " AND (i.s=0 AND i.m=0 AND i.l=0 AND i.xl=0 AND i.xxl=0 AND i.xxxl=0)";
+        $where .= " AND (
+                        (product_type = 'sized' AND 
+                            (xs IS NOT NULL AND xs=0) AND 
+                            (s IS NOT NULL AND s=0) AND 
+                            (m IS NOT NULL AND m=0) AND 
+                            (l IS NOT NULL AND l=0) AND 
+                            (xl IS NOT NULL AND xl=0) AND 
+                            (xxl IS NOT NULL AND xxl=0) AND 
+                            (xxxl IS NOT NULL AND xxxl=0)
+                        )
+                        OR
+                        (product_type = 'unitary' AND quantity <= 0)
+                    )";
     } elseif ($stock === 'active') {
-        $where .= " AND (i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) > 0";
+        $where .= " AND (
+                        (product_type = 'sized' AND (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) > 0)
+                        OR
+                        (product_type = 'unitary' AND i.quantity > 0)
+                    )";
     }
 
     $orderBy = "ORDER BY i.sku ASC";
+    // Helper for total quantity
+    $totalQtySql = "IF(i.product_type='unitary', i.quantity, (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl))";
+    
     if ($sort === 'total_desc') {
-        $orderBy = "ORDER BY (i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) DESC";
+        $orderBy = "ORDER BY $totalQtySql DESC";
     } elseif ($sort === 'total_asc') {
-        $orderBy = "ORDER BY (i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) ASC";
+        $orderBy = "ORDER BY $totalQtySql ASC";
     } elseif ($sort === 'value_desc') {
-        $orderBy = "ORDER BY ((i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) DESC";
+        $orderBy = "ORDER BY ($totalQtySql * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) DESC";
     } elseif ($sort === 'value_asc') {
-        $orderBy = "ORDER BY ((i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) ASC";
+        $orderBy = "ORDER BY ($totalQtySql * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) ASC";
     } elseif ($sort === 'updated') {
         $orderBy = "ORDER BY i.updated_at DESC";
     }
@@ -191,20 +225,33 @@ if ($action === 'list' || $action === '') {
     $s1 = $mysqli->query("SELECT COUNT(*) as total FROM inventory WHERE status != 'archived'");
     $stats['total'] = $s1 ? (int)$s1->fetch_assoc()['total'] : 0;
 
-    $s2 = $mysqli->query("SELECT COUNT(*) as low FROM inventory WHERE status != 'archived' AND (s <= min_stock_alert OR m <= min_stock_alert OR l <= min_stock_alert OR xl <= min_stock_alert OR xxl <= min_stock_alert OR xxxl <= min_stock_alert) AND (s+m+l+xl+xxl+xxxl) > 0");
+    $s2 = $mysqli->query("SELECT COUNT(*) as low FROM inventory i WHERE status != 'archived' AND (
+                            (product_type = 'sized' AND (xs <= min_stock_alert OR s <= min_stock_alert OR m <= min_stock_alert OR l <= min_stock_alert OR xl <= min_stock_alert OR xxl <= min_stock_alert OR xxxl <= min_stock_alert) AND (xs+s+m+l+xl+xxl+xxxl) > 0)
+                            OR
+                            (product_type = 'unitary' AND quantity <= min_stock_alert AND quantity > 0)
+                        )");
     $stats['low'] = $s2 ? (int)$s2->fetch_assoc()['low'] : 0;
 
-    $s3 = $mysqli->query("SELECT COUNT(*) as zero FROM inventory WHERE status != 'archived' AND (s=0 AND m=0 AND l=0 AND xl=0 AND xxl=0 AND xxxl=0)");
+    $s3 = $mysqli->query("SELECT COUNT(*) as zero FROM inventory WHERE status != 'archived' AND (
+                            (product_type = 'sized' AND xs=0 AND s=0 AND m=0 AND l=0 AND xl=0 AND xxl=0 AND xxxl=0)
+                            OR
+                            (product_type = 'unitary' AND quantity <= 0)
+                        )");
     $stats['zero'] = $s3 ? (int)$s3->fetch_assoc()['zero'] : 0;
     
     // New Stat: Total with Stock
-    $s4 = $mysqli->query("SELECT COUNT(*) as active FROM inventory WHERE status != 'archived' AND (s+m+l+xl+xxl+xxxl) > 0");
+    $s4 = $mysqli->query("SELECT COUNT(*) as active FROM inventory WHERE status != 'archived' AND (
+                            (product_type = 'sized' AND (xs+s+m+l+xl+xxl+xxxl) > 0)
+                            OR
+                            (product_type = 'unitary' AND quantity > 0)
+                        )");
     $stats['active'] = $s4 ? (int)$s4->fetch_assoc()['active'] : 0;
 
     echo json_encode([
         "items" => $items,
         "total" => $total,
-        "stats" => $stats
+        "stats" => $stats,
+        "image_base_url" => "uploads/" . (defined('CLIENT_SUBDOMAIN') ? CLIENT_SUBDOMAIN : 'default') . "/products/"
     ]);
 
 } elseif ($action === 'get' && isset($_GET['id'])) {
@@ -241,6 +288,8 @@ if ($action === 'list' || $action === '') {
     
     if (empty($data['sku'])) {
         $data['sku'] = strtoupper(substr($data['category'], 0, 3) . '-' . uniqid());
+    } else {
+        $data['sku'] = strtoupper($data['sku']);
     }
 
     handleRackLocations($data['rack_location'] ?? '');
@@ -250,8 +299,24 @@ if ($action === 'list' || $action === '') {
 
     // Purchase Cost
     $purchase_cost = $data['purchase_cost'] ?? 0.00;
+    
+    // Validation for Product Type
+    $product_type = $data['product_type'] ?? 'sized';
+    if (!in_array($product_type, ['sized', 'unitary'])) {
+        $product_type = 'sized';
+    }
+    
+    $quantity = 0;
+    if ($product_type === 'unitary') {
+        $quantity = (int)($data['quantity'] ?? 0);
+        // Force sizes to 0
+        $data['s'] = $data['m'] = $data['l'] = $data['xl'] = $data['xxl'] = $data['xxxl'] = 0;
+    } else {
+        // Force quantity to 0
+        $quantity = 0;
+    }
 
-    $stmt = $mysqli->prepare("INSERT INTO inventory (sku, category, s, m, l, xl, xxl, xxxl, rack_location, img1, min_stock_alert, status, updated_by, created_at, updated_at, live_links, purchase_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $mysqli->prepare("INSERT INTO inventory (sku, category, xs, s, m, l, xl, xxl, xxxl, quantity, product_type, rack_location, img1, min_stock_alert, status, updated_by, created_at, updated_at, live_links, purchase_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     
     // Use session user_id always for security
     $auth_user_id = $_SESSION['user_id'];
@@ -269,11 +334,22 @@ if ($action === 'list' || $action === '') {
         }
     }
 
+    // Prepare nullable sizes
+    $xs = ($data['xs'] !== '' && $data['xs'] !== null) ? (int)$data['xs'] : null;
+    $s = ($data['s'] !== '' && $data['s'] !== null) ? (int)$data['s'] : null;
+    $m = ($data['m'] !== '' && $data['m'] !== null) ? (int)$data['m'] : null;
+    $l = ($data['l'] !== '' && $data['l'] !== null) ? (int)$data['l'] : null;
+    $xl = ($data['xl'] !== '' && $data['xl'] !== null) ? (int)$data['xl'] : null;
+    $xxl = ($data['xxl'] !== '' && $data['xxl'] !== null) ? (int)$data['xxl'] : null;
+    $xxxl = ($data['xxxl'] !== '' && $data['xxxl'] !== null) ? (int)$data['xxxl'] : null;
+
     $stmt->bind_param(
-        "ssiiiiiissisisssd",
+        "ssiiiiiiiisssisisssd",
         $data['sku'], $data['category'],
-        $data['s'], $data['m'], $data['l'], $data['xl'],
-        $data['xxl'], $data['xxxl'], $data['rack_location'],
+        $xs, $s, $m, $l, $xl,
+        $xxl, $xxxl, 
+        $quantity, $product_type,
+        $data['rack_location'],
         $data['img1'], $min_stock, $status, $auth_user_id, $current_time, $current_time,
         $live_links, $purchase_cost
     );
@@ -339,16 +415,36 @@ if ($action === 'list' || $action === '') {
     // Purchase Cost
     $purchase_cost = $data['purchase_cost'] ?? 0.00;
 
-    $stmt = $mysqli->prepare("UPDATE inventory SET sku=?, category=?, s=?, m=?, l=?, xl=?, xxl=?, xxxl=?, rack_location=?, img1=?, min_stock_alert=?, status=?, updated_by=?, updated_at=?, live_links=?, purchase_cost=? WHERE id=?");
+    $product_type = $data['product_type'] ?? 'sized';
+     if ($product_type === 'unitary') {
+        $quantity = (int)($data['quantity'] ?? 0);
+        // Force sizes to 0
+        $data['s'] = $data['m'] = $data['l'] = $data['xl'] = $data['xxl'] = $data['xxxl'] = 0;
+    } else {
+        $quantity = 0;
+    }
+
+    $stmt = $mysqli->prepare("UPDATE inventory SET sku=?, category=?, xs=?, s=?, m=?, l=?, xl=?, xxl=?, xxxl=?, quantity=?, product_type=?, rack_location=?, img1=?, min_stock_alert=?, status=?, updated_by=?, updated_at=?, live_links=?, purchase_cost=? WHERE id=?");
     
     $auth_user_id = $_SESSION['user_id'];
     $current_time = date('Y-m-d H:i:s');
 
+    // Prepare nullable sizes
+    $xs = ($data['xs'] !== '' && $data['xs'] !== null) ? (int)$data['xs'] : null;
+    $s = ($data['s'] !== '' && $data['s'] !== null) ? (int)$data['s'] : null;
+    $m = ($data['m'] !== '' && $data['m'] !== null) ? (int)$data['m'] : null;
+    $l = ($data['l'] !== '' && $data['l'] !== null) ? (int)$data['l'] : null;
+    $xl = ($data['xl'] !== '' && $data['xl'] !== null) ? (int)$data['xl'] : null;
+    $xxl = ($data['xxl'] !== '' && $data['xxl'] !== null) ? (int)$data['xxl'] : null;
+    $xxxl = ($data['xxxl'] !== '' && $data['xxxl'] !== null) ? (int)$data['xxxl'] : null;
+
     $stmt->bind_param(
-        "ssiiiiiissisissdi",
+        "ssiiiiiiiisssisissdi",
         $data['sku'], $data['category'],
-        $data['s'], $data['m'], $data['l'], $data['xl'],
-        $data['xxl'], $data['xxxl'], $data['rack_location'],
+        $xs, $s, $m, $l, $xl,
+        $xxl, $xxxl,
+        $quantity, $product_type,
+        $data['rack_location'],
         $data['img1'], $data['min_stock_alert'], $data['status'], $auth_user_id, $current_time,
         $live_links, $purchase_cost,
         $id
@@ -356,7 +452,7 @@ if ($action === 'list' || $action === '') {
     
     try {
         if ($stmt->execute()) {
-            $fields = ['s', 'm', 'l', 'xl', 'xxl', 'xxxl', 'rack_location', 'status', 'purchase_cost'];
+            $fields = ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'quantity', 'product_type', 'rack_location', 'status', 'purchase_cost'];
             foreach ($fields as $f) {
                 if (isset($oldData[$f]) && isset($data[$f]) && $oldData[$f] != $data[$f]) {
                     $diff = is_numeric($data[$f]) && is_numeric($oldData[$f]) ? $data[$f] - $oldData[$f] : 0;
@@ -418,7 +514,7 @@ if ($action === 'list' || $action === '') {
     // Admin only check ideally, but frontend handles visibility mostly.
     
     // Total Quantity by Category
-    $qtyRes = $mysqli->query("SELECT category, SUM(s+m+l+xl+xxl+xxxl) as total_qty FROM inventory WHERE status!='archived' GROUP BY category");
+    $qtyRes = $mysqli->query("SELECT category, SUM(IF(product_type='unitary', quantity, xs+s+m+l+xl+xxl+xxxl)) as total_qty FROM inventory WHERE status!='archived' GROUP BY category");
     $qty_stats = [];
     while ($row = $qtyRes->fetch_assoc()) {
         $qty_stats[] = $row;
@@ -426,7 +522,7 @@ if ($action === 'list' || $action === '') {
 
     // Total Value by Category
     // Logic: If Manufacture Cost (sc.total_cost) exists (>0), use it. Else use Purchase Cost (i.purchase_cost).
-    $valRes = $mysqli->query("SELECT i.category, SUM((i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) as total_value FROM inventory i LEFT JOIN sku_costings sc ON i.sku = sc.sku WHERE i.status!='archived' GROUP BY category");
+    $valRes = $mysqli->query("SELECT i.category, SUM(IF(i.product_type='unitary', i.quantity, (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl)) * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) as total_value FROM inventory i LEFT JOIN sku_costings sc ON i.sku = sc.sku WHERE i.status!='archived' GROUP BY category");
     $val_stats = [];
     while ($row = $valRes->fetch_assoc()) {
         $val_stats[] = $row;
@@ -466,27 +562,28 @@ if ($action === 'list' || $action === '') {
         $where .= " AND i.rack_location = '" . escape($rack) . "'";
     }
     if ($stock === 'low') {
-        $where .= " AND (i.s<20 OR i.m<20 OR i.l<20 OR i.xl<20 OR i.xxl<20 OR i.xxxl<20) 
-                    AND (i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) > 0";
+        $where .= " AND (i.xs<20 OR i.s<20 OR i.m<20 OR i.l<20 OR i.xl<20 OR i.xxl<20 OR i.xxxl<20) 
+                    AND (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) > 0";
     } elseif ($stock === 'zero') {
-        $where .= " AND (i.s=0 AND i.m=0 AND i.l=0 AND i.xl=0 AND i.xxl=0 AND i.xxxl=0)";
+        $where .= " AND (i.xs=0 AND i.s=0 AND i.m=0 AND i.l=0 AND i.xl=0 AND i.xxl=0 AND i.xxxl=0)";
     }
 
     header("Content-Type: application/vnd.ms-excel");
     header("Content-Disposition: attachment; filename=inventory_export.xls");
     
     echo "<table border='1'>";
-    echo "<tr><th>SKU</th><th>Category</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>XXL</th><th>XXXL</th><th>Total</th><th>Rack</th><th>Status</th><th>Purchase Cost</th><th>Manufacture Cost</th></tr>";
+    echo "<tr><th>SKU</th><th>Category</th><th>XS</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>XXL</th><th>XXXL</th><th>Total</th><th>Rack</th><th>Status</th><th>Purchase Cost</th><th>Manufacture Cost</th></tr>";
     
     $res = $mysqli->query("SELECT i.*, sc.total_cost FROM inventory i LEFT JOIN sku_costings sc ON i.sku = sc.sku $where");
     while ($row = $res->fetch_assoc()) {
-        $total_qty = $row['s'] + $row['m'] + $row['l'] + $row['xl'] + $row['xxl'] + $row['xxxl'];
+        $total_qty = $row['xs'] + $row['s'] + $row['m'] + $row['l'] + $row['xl'] + $row['xxl'] + $row['xxxl'];
         $p_cost = $row['purchase_cost'] ?? 0;
         $m_cost = $row['total_cost'] ?? 0;
         // Use a more robust CSV-friendly way if needed, but HTML table works for XLS hack
         echo "<tr>
                 <td>{$row['sku']}</td>
                 <td>{$row['category']}</td>
+                <td>{$row['xs']}</td>
                 <td>{$row['s']}</td>
                 <td>{$row['m']}</td>
                 <td>{$row['l']}</td>
@@ -524,7 +621,7 @@ if ($action === 'list' || $action === '') {
         exit;
     }
 
-    $validSizes = ['s', 'm', 'l', 'xl', 'xxl', 'xxxl'];
+    $validSizes = ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl'];
     if (!in_array($size, $validSizes)) {
         http_response_code(400);
         echo json_encode(["success" => false, "error" => "Invalid size: $size"]);

@@ -77,10 +77,8 @@
         onclick="openItemDetailsModal('pending')">
         <div class="flex flex-col-reverse md:flex-row justify-between items-start md:items-center">
           <div>
-            <p class="text-xs md:text-sm font-medium text-gray-500">Pending</p>
+            <p class="text-xs md:text-sm font-medium text-gray-500">Total Pending</p>
             <h3 class="text-xl md:text-3xl font-bold text-gray-800 mt-1 md:mt-2" id="pendingOrders">0</h3>
-            <div id="pendingBreakdown" class="text-[10px] md:text-xs text-gray-500 mt-1 font-medium hidden md:block">
-            </div>
           </div>
           <div class="p-2 md:p-3 bg-yellow-50 rounded-lg text-yellow-600 mb-2 md:mb-0 self-start md:self-auto">
             <i class="fas fa-clock text-base md:text-xl"></i>
@@ -362,12 +360,9 @@
             document.getElementById('pickedOrders').textContent = data.summary.completed_orders || 0;
             document.getElementById('substitutions').textContent = data.summary.substitutions || 0;
 
-            // Detailed Pending Breakdown
-            const notPicked = data.summary.not_picked || 0;
-            const partial = data.summary.partial || 0;
-            const notFound = data.summary.not_found || 0;
-            document.getElementById('pendingBreakdown').innerHTML =
-              `Not Picked: <span class="text-red-500">${notPicked}</span> | Partial: <span class="text-yellow-600">${partial}</span> | Not Found: <span class="text-orange-500">${notFound}</span>`;
+            document.getElementById('substitutions').textContent = data.summary.substitutions || 0;
+
+            // Detailed Pending Breakdown Removed
 
             // Update Trend Chart
             updateTrendChart(data.trend);

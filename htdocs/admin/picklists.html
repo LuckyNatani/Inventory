@@ -22,8 +22,9 @@
                 <h2 class="text-xl md:text-2xl font-bold text-gray-800">Manage Picklists</h2>
                 <div class="flex gap-3">
                     <a href="upload-picklist.html"
-                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm">
-                        <i class="fas fa-plus mr-2"></i>New Upload
+                        class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 py-2.5 rounded-full hover:shadow-lg hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 shadow-md flex items-center gap-2 font-medium tracking-wide transform hover:-translate-y-0.5">
+                        <i class="fas fa-cloud-upload-alt text-lg"></i>
+                        <span>New Upload</span>
                     </a>
                 </div>
             </div>
@@ -38,6 +39,7 @@
                     <option value="in_progress">In Progress</option>
                     <option value="completed">Completed</option>
                     <option value="partial">Partial</option>
+                    <option value="submitted">Submitted</option>
                 </select>
                 <select id="pickerFilter"
                     class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
@@ -163,7 +165,8 @@
                             'pending': 'bg-gray-100 text-gray-800',
                             'in_progress': 'bg-blue-100 text-blue-800',
                             'completed': 'bg-green-100 text-green-800',
-                            'partial': 'bg-yellow-100 text-yellow-800'
+                            'partial': 'bg-yellow-100 text-yellow-800',
+                            'submitted': 'bg-orange-100 text-orange-800'
                         }[p.status] || 'bg-gray-100';
 
                         const tr = document.createElement('tr');
