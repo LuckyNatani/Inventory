@@ -64,7 +64,7 @@ async function fetchUsers() {
                         ${roles}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        ${user.created_at ? new Date(user.created_at).toLocaleString('en-IN') : '-'}
+                        ${user.created_at ? formatTimestamp(user.created_at) : '-'}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500">
                         <div><i class="fas fa-phone text-xs w-4"></i> ${user.mobile1 || '-'}</div>

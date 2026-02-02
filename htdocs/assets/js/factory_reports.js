@@ -179,7 +179,7 @@ runFactorySkuReport = async () => {
                 <td class="px-6 py-4 font-medium text-gray-900">${row.sku}</td>
                 <td class="px-6 py-4">${row.segments}</td>
                 <td class="px-6 py-4 font-bold text-indigo-600">₹${row.price}</td>
-                <td class="px-6 py-4 text-xs text-gray-700">${row.last_date}</td>
+                <td class="px-6 py-4 text-xs text-gray-700">${row.last_date ? formatTimestamp(row.last_date) : '-'}</td>
             </tr>
         `).join('');
         drawTable(html, ['SKU', 'Segments', 'Latest Rate', 'Last Date']);
@@ -225,7 +225,7 @@ runRateHistoryReport = async () => {
         }
         const html = res.data.map(row => `
             <tr class="hover:bg-gray-50 border-b last:border-0 transition-colors">
-                <td class="px-6 py-4 text-xs text-gray-700 whitespace-nowrap">${row.created_at}</td>
+                <td class="px-6 py-4 text-xs text-gray-700 whitespace-nowrap">${row.created_at ? formatTimestamp(row.created_at) : '-'}</td>
                 <td class="px-6 py-4 font-medium text-gray-900">${row.factory_name}</td>
                 <td class="px-6 py-4"><span class="px-2 py-1 rounded bg-gray-100 text-xs">${row.segment_name}</span></td>
                 <td class="px-6 py-4 font-bold text-gray-800">₹${row.price}</td>

@@ -10,7 +10,7 @@
   <script src="assets/js/config.js" defer></script>
   <script src="assets/js/inventory.js" defer></script>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="assets/js/navbar.js" defer></script>
 </head>
@@ -33,8 +33,7 @@
             <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">Total SKUs</p>
             <h3 class="text-lg md:text-3xl font-bold text-gray-800" id="totalProducts">0</h3>
           </div>
-          <div
-            class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+          <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
             <i class="fas fa-boxes text-sm md:text-xl"></i>
           </div>
         </div>
@@ -74,6 +73,30 @@
             <i class="fas fa-times-circle text-sm md:text-xl"></i>
           </div>
         </div>
+
+        <div id="statSlowStock" data-role="admin,production"
+          class="stat-card bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100">
+          <div>
+            <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">Slow Moving</p>
+            <h3 class="text-lg md:text-3xl font-bold text-yellow-600" id="slowStockCount">0</h3>
+          </div>
+          <div
+            class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600">
+            <i class="fa-solid fa-hourglass-half text-sm md:text-xl"></i>
+          </div>
+        </div>
+
+        <div id="statDeadStock" data-role="admin,production"
+          class="stat-card bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100">
+          <div>
+            <p class="text-gray-500 text-[10px] md:text-sm font-medium mb-1">Dead Stock</p>
+            <h3 class="text-lg md:text-3xl font-bold text-gray-600" id="deadStockCount">0</h3>
+          </div>
+          <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+            <i class="fas fa-skull-crossbones text-sm md:text-xl"></i>
+          </div>
+        </div>
+
         <div id="statTotalQty"
           class="bg-white rounded-xl shadow-sm p-3 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow border border-gray-100 hidden"
           onclick="openCategoryQtyModal()">
@@ -98,6 +121,7 @@
       </div>
     </div>
 
+    <!-- Add Product Form (Closed Properly) -->
     <form id="productForm" class="bg-white p-3 md:p-6 rounded-xl shadow-sm mb-6 glass-card"
       data-role="stocker,admin,sub-admin,production">
       <div class="flex justify-between items-center cursor-pointer" onclick="toggleAddProduct()">
@@ -109,6 +133,9 @@
       </div>
 
       <div id="addProductContent" class="hidden transition-all duration-300 ease-in-out mt-2">
+        <!-- ... form content ... -->
+        <!-- Original Location of this form content implied, we are just fixing closure below -->
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
           <!-- General Info -->
@@ -268,32 +295,32 @@
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Bottom: Links -->
-        <div class="border-t border-gray-100 pt-4 mb-4">
-          <label class="block text-sm font-semibold text-gray-700 mb-2">Live Product Links</label>
-          <div
-            class="border border-gray-200 rounded-xl p-1 bg-gray-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all shadow-sm">
-            <div id="linkTags" class="flex flex-wrap gap-2 mb-1 empty:hidden p-1"></div>
-            <input type="url" id="linkInput" placeholder="Paste URL & Enter"
-              class="w-full outline-none text-sm p-2 bg-transparent" />
+          <!-- Bottom: Links -->
+          <div class="border-t border-gray-100 pt-4 mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Live Product Links</label>
+            <div
+              class="border border-gray-200 rounded-xl p-1 bg-gray-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all shadow-sm">
+              <div id="linkTags" class="flex flex-wrap gap-2 mb-1 empty:hidden p-1"></div>
+              <input type="url" id="linkInput" placeholder="Paste URL & Enter"
+                class="w-full outline-none text-sm p-2 bg-transparent" />
+            </div>
+            <input type="hidden" id="live_links" name="live_links" />
           </div>
-          <input type="hidden" id="live_links" name="live_links" />
-        </div>
 
 
-        <div class="flex justify-end gap-4">
-          <button type="button" id="cancelEdit"
-            class="hidden text-gray-500 hover:text-gray-700 font-medium transition-colors">
-            Cancel
-          </button>
-          <button type="submit"
-            class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm hover:shadow">
-            <i class="fas fa-save mr-2"></i> Save
-          </button>
+          <div class="flex justify-end gap-4 items-center">
+            <button type="button" id="cancelEdit"
+              class="hidden text-gray-500 hover:text-gray-700 font-medium transition-colors">
+              Cancel
+            </button>
+            <button type="submit"
+              class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm shadow-sm hover:shadow">
+              <i class="fas fa-save mr-2"></i> Save
+            </button>
+          </div>
         </div>
-      </div>
+      </div> <!-- Closing addProductContent -->
     </form>
 
     <div class="bg-white rounded-xl shadow-sm p-3 md:p-6 mb-6 glass-card">
@@ -319,6 +346,8 @@
               class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white flex-grow md:flex-grow-0">
               <option value="all">All Categories</option>
             </select>
+            <!-- Removed Stock Filter Dropdown -->
+
             <!-- Sort -->
             <!-- Sort & Export Group -->
             <div class="flex gap-2 items-center flex-grow md:flex-grow-0">
@@ -327,6 +356,10 @@
                 <option value="sku">Sort by SKU</option>
                 <option value="total_desc">Stock: High to Low</option>
                 <option value="total_asc">Stock: Low to High</option>
+                <option value="sold_desc">Sold (30d): High to Low</option>
+                <option value="sold_asc">Sold (30d): Low to High</option>
+                <option value="cost_desc" data-role="admin">Cost: High to Low</option>
+                <option value="cost_asc" data-role="admin">Cost: Low to High</option>
                 <option value="value_desc" data-role="admin">Total Value: High to Low</option>
                 <option value="value_asc" data-role="admin">Total Value: Low to High</option>
                 <option value="updated">Last Updated</option>
@@ -378,6 +411,7 @@
                 <th scope="col"
                   class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                   3XL</th>
+
                 <th scope="col"
                   class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total</th>
@@ -390,6 +424,9 @@
                 <th scope="col" data-role="admin"
                   class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total Value</th>
+                <th scope="col"
+                  class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-indigo-500 uppercase tracking-wider">
+                  Sold (30d)</th>
 
                 <th scope="col"
                   class="sticky top-0 z-10 bg-gray-50 px-1 py-2 md:px-3 md:py-3 text-center text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">

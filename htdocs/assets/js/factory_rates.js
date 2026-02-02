@@ -301,7 +301,7 @@ async function fetchRates(sku, page = 1) {
                     const tr = document.createElement('tr');
                     if (isVoided) tr.className = 'bg-red-50 text-gray-400';
                     tr.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">${log.created_at}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${formatTimestamp(log.created_at)}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${log.segment_name}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">${log.factory_name}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-bold">₹${Number(log.price).toFixed(2)}</td>
@@ -888,7 +888,7 @@ async function loadNotes(sku) {
                     <div class="flex justify-between items-start mb-2">
                         <span class="font-bold text-gray-700 text-sm">${note.created_by_name || 'Unknown'}</span>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-400">${note.created_at}</span>
+                            <span class="text-xs text-gray-400">${formatTimestamp(note.created_at)}</span>
                             ${canEdit() ? `
                                 <button onclick="editNote(${note.note_id}, this)" class="text-gray-400 hover:text-indigo-600 transition-colors">
                                     <i class="fas fa-edit"></i>

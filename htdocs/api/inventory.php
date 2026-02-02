@@ -36,9 +36,11 @@ function escape($val) {
 
 function logAudit($inventory_id, $sku, $action, $field, $old_val, $new_val, $qty_change, $user_id, $ref_type = 'manual', $ref_id = null, $notes = '') {
     global $mysqli;
-    $stmt = $mysqli->prepare("INSERT INTO inventory_audit_log (inventory_id, sku, action, field_changed, old_value, new_value, quantity_change, changed_by, reference_type, reference_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    // Explicitly handle changed_at to ensure it's recorded correctly
+    $current_time = date('Y-m-d H:i:s');
+    $stmt = $mysqli->prepare("INSERT INTO inventory_audit_log (inventory_id, sku, action, field_changed, old_value, new_value, quantity_change, changed_by, reference_type, reference_id, notes, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     if ($stmt) {
-        $stmt->bind_param("isssssiisss", $inventory_id, $sku, $action, $field, $old_val, $new_val, $qty_change, $user_id, $ref_type, $ref_id, $notes);
+        $stmt->bind_param("isssssiissss", $inventory_id, $sku, $action, $field, $old_val, $new_val, $qty_change, $user_id, $ref_type, $ref_id, $notes, $current_time);
         $stmt->execute();
     }
 }
@@ -170,7 +172,7 @@ if ($action === 'list' || $action === '') {
                     )";
     } elseif ($stock === 'active') {
         $where .= " AND (
-                        (product_type = 'sized' AND (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) > 0)
+                        (product_type = 'sized' AND (COALESCE(i.xs,0)+COALESCE(i.s,0)+COALESCE(i.m,0)+COALESCE(i.l,0)+COALESCE(i.xl,0)+COALESCE(i.xxl,0)+COALESCE(i.xxxl,0)) > 0)
                         OR
                         (product_type = 'unitary' AND i.quantity > 0)
                     )";
@@ -178,12 +180,20 @@ if ($action === 'list' || $action === '') {
 
     $orderBy = "ORDER BY i.sku ASC";
     // Helper for total quantity
-    $totalQtySql = "IF(i.product_type='unitary', i.quantity, (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl))";
+    $totalQtySql = "IF(i.product_type='unitary', i.quantity, (COALESCE(i.xs,0)+COALESCE(i.s,0)+COALESCE(i.m,0)+COALESCE(i.l,0)+COALESCE(i.xl,0)+COALESCE(i.xxl,0)+COALESCE(i.xxxl,0)))";
     
     if ($sort === 'total_desc') {
         $orderBy = "ORDER BY $totalQtySql DESC";
     } elseif ($sort === 'total_asc') {
         $orderBy = "ORDER BY $totalQtySql ASC";
+    } elseif ($sort === 'sold_desc') {
+        $orderBy = "ORDER BY sold_30d DESC";
+    } elseif ($sort === 'sold_asc') {
+        $orderBy = "ORDER BY sold_30d ASC";
+    } elseif ($sort === 'cost_desc') {
+        $orderBy = "ORDER BY IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0)) DESC";
+    } elseif ($sort === 'cost_asc') {
+        $orderBy = "ORDER BY IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0)) ASC";
     } elseif ($sort === 'value_desc') {
         $orderBy = "ORDER BY ($totalQtySql * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) DESC";
     } elseif ($sort === 'value_asc') {
@@ -192,14 +202,82 @@ if ($action === 'list' || $action === '') {
         $orderBy = "ORDER BY i.updated_at DESC";
     }
 
+    // --- FETCH SETTINGS (Slow/Dead Logic) ---
+    $settings = [];
+    $uid = $_SESSION['user_id'] ?? 0;
+    if($uid) {
+        $s_stmt = $mysqli->prepare("SELECT setting_key, setting_value FROM user_settings WHERE user_id = ?");
+        if ($s_stmt) {
+            $s_stmt->bind_param("i", $uid);
+            $s_stmt->execute();
+            $s_res = $s_stmt->get_result();
+            while ($sr = $s_res->fetch_assoc()) {
+                $settings[$sr['setting_key']] = $sr['setting_value'];
+            }
+            $s_stmt->close();
+        }
+    }
+    $slow_qty = $settings['slow_moving_qty'] ?? 100;
+    $slow_days = $settings['slow_moving_days'] ?? 90;
+    $dead_qty = $settings['dead_stock_qty'] ?? 0;
+    $dead_days = $settings['dead_stock_days'] ?? 90;
+
     $items = [];
     $query = "SELECT i.*, 
                      (SELECT username FROM users WHERE sno = i.updated_by) as updated_by_name,
-                     sc.total_cost as cost_price
+                     sc.total_cost as cost_price,
+                     (SELECT ABS(COALESCE(SUM(quantity_change), 0)) 
+                      FROM inventory_audit_log 
+                      WHERE sku = i.sku 
+                      AND quantity_change < 0 
+                      AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'quantity')
+                      AND changed_at >= CURDATE() - INTERVAL 30 DAY) as sold_30d,
+                     
+                     (SELECT ABS(COALESCE(SUM(quantity_change), 0)) 
+                      FROM inventory_audit_log 
+                      WHERE sku = i.sku 
+                      AND quantity_change < 0 
+                      AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'quantity')
+                      AND changed_at >= CURDATE() - INTERVAL $slow_days DAY) as sold_slow_period,
+
+                     (SELECT ABS(COALESCE(SUM(quantity_change), 0)) 
+                      FROM inventory_audit_log 
+                      WHERE sku = i.sku 
+                      AND quantity_change < 0 
+                      AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'quantity')
+                      AND changed_at >= CURDATE() - INTERVAL $dead_days DAY) as sold_dead_period,
+
+                     IF(
+                        (i.product_type = 'unitary' AND i.quantity > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('quantity') AND changed_at >= CURDATE() - INTERVAL $slow_days DAY) < $slow_qty)
+                        OR
+                        (i.product_type = 'sized' AND (COALESCE(i.xs,0)+COALESCE(i.s,0)+COALESCE(i.m,0)+COALESCE(i.l,0)+COALESCE(i.xl,0)+COALESCE(i.xxl,0)+COALESCE(i.xxxl,0)) > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl') AND changed_at >= CURDATE() - INTERVAL $slow_days DAY) < $slow_qty),
+                        1, 0
+                     ) as is_slow_moving,
+                     IF(
+                        (i.product_type = 'unitary' AND i.quantity > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('quantity') AND changed_at >= CURDATE() - INTERVAL $dead_days DAY) <= $dead_qty)
+                        OR
+                        (i.product_type = 'sized' AND (COALESCE(i.xs,0)+COALESCE(i.s,0)+COALESCE(i.m,0)+COALESCE(i.l,0)+COALESCE(i.xl,0)+COALESCE(i.xxl,0)+COALESCE(i.xxxl,0)) > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl') AND changed_at >= CURDATE() - INTERVAL $dead_days DAY) <= $dead_qty),
+                        1, 0
+                     ) as is_dead_stock
               FROM inventory i
               LEFT JOIN sku_costings sc ON i.sku = sc.sku
-              $where 
-              $orderBy 
+              $where ";
+    
+    if ($stock === 'slow') {
+        $query .= " AND (
+                        (i.product_type = 'unitary' AND i.quantity > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('quantity') AND changed_at >= CURDATE() - INTERVAL $slow_days DAY) < $slow_qty)
+                        OR
+                        (i.product_type = 'sized' AND (COALESCE(i.xs,0)+COALESCE(i.s,0)+COALESCE(i.m,0)+COALESCE(i.l,0)+COALESCE(i.xl,0)+COALESCE(i.xxl,0)+COALESCE(i.xxxl,0)) > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl') AND changed_at >= CURDATE() - INTERVAL $slow_days DAY) < $slow_qty)
+                    )";
+    } elseif ($stock === 'dead') {
+        $query .= " AND (
+                        (i.product_type = 'unitary' AND i.quantity > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('quantity') AND changed_at >= CURDATE() - INTERVAL $dead_days DAY) <= $dead_qty)
+                        OR
+                        (i.product_type = 'sized' AND (COALESCE(i.xs,0)+COALESCE(i.s,0)+COALESCE(i.m,0)+COALESCE(i.l,0)+COALESCE(i.xl,0)+COALESCE(i.xxl,0)+COALESCE(i.xxxl,0)) > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl') AND changed_at >= CURDATE() - INTERVAL $dead_days DAY) <= $dead_qty)
+                    )";
+    }
+
+    $query .= " $orderBy 
               LIMIT $offset, $limit";
               
     $result = $mysqli->query($query);
@@ -226,7 +304,7 @@ if ($action === 'list' || $action === '') {
     $stats['total'] = $s1 ? (int)$s1->fetch_assoc()['total'] : 0;
 
     $s2 = $mysqli->query("SELECT COUNT(*) as low FROM inventory i WHERE status != 'archived' AND (
-                            (product_type = 'sized' AND (xs <= min_stock_alert OR s <= min_stock_alert OR m <= min_stock_alert OR l <= min_stock_alert OR xl <= min_stock_alert OR xxl <= min_stock_alert OR xxxl <= min_stock_alert) AND (xs+s+m+l+xl+xxl+xxxl) > 0)
+                            (product_type = 'sized' AND (xs <= min_stock_alert OR s <= min_stock_alert OR m <= min_stock_alert OR l <= min_stock_alert OR xl <= min_stock_alert OR xxl <= min_stock_alert OR xxxl <= min_stock_alert) AND (COALESCE(xs,0)+COALESCE(s,0)+COALESCE(m,0)+COALESCE(l,0)+COALESCE(xl,0)+COALESCE(xxl,0)+COALESCE(xxxl,0)) > 0)
                             OR
                             (product_type = 'unitary' AND quantity <= min_stock_alert AND quantity > 0)
                         )");
@@ -241,11 +319,27 @@ if ($action === 'list' || $action === '') {
     
     // New Stat: Total with Stock
     $s4 = $mysqli->query("SELECT COUNT(*) as active FROM inventory WHERE status != 'archived' AND (
-                            (product_type = 'sized' AND (xs+s+m+l+xl+xxl+xxxl) > 0)
+                            (product_type = 'sized' AND (COALESCE(xs,0)+COALESCE(s,0)+COALESCE(m,0)+COALESCE(l,0)+COALESCE(xl,0)+COALESCE(xxl,0)+COALESCE(xxxl,0)) > 0)
                             OR
                             (product_type = 'unitary' AND quantity > 0)
                         )");
     $stats['active'] = $s4 ? (int)$s4->fetch_assoc()['active'] : 0;
+
+    // Slow Moving Stat
+    $s5 = $mysqli->query("SELECT COUNT(*) as slow FROM inventory i WHERE status != 'archived' AND (
+        (i.product_type = 'unitary' AND i.quantity > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('quantity') AND changed_at >= CURDATE() - INTERVAL $slow_days DAY) < $slow_qty)
+        OR
+        (i.product_type = 'sized' AND (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl') AND changed_at >= CURDATE() - INTERVAL $slow_days DAY) < $slow_qty)
+    )");
+    $stats['slow'] = $s5 ? (int)$s5->fetch_assoc()['slow'] : 0;
+
+    // Dead Stock Stat
+    $s6 = $mysqli->query("SELECT COUNT(*) as dead FROM inventory i WHERE status != 'archived' AND (
+        (i.product_type = 'unitary' AND i.quantity > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('quantity') AND changed_at >= CURDATE() - INTERVAL $dead_days DAY) <= $dead_qty)
+        OR
+        (i.product_type = 'sized' AND (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl) > 0 AND (SELECT ABS(COALESCE(SUM(quantity_change), 0)) FROM inventory_audit_log WHERE sku = i.sku AND quantity_change < 0 AND field_changed IN ('xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl') AND changed_at >= CURDATE() - INTERVAL $dead_days DAY) <= $dead_qty)
+    )");
+    $stats['dead'] = $s6 ? (int)$s6->fetch_assoc()['dead'] : 0;
 
     echo json_encode([
         "items" => $items,
@@ -343,8 +437,13 @@ if ($action === 'list' || $action === '') {
     $xxl = ($data['xxl'] !== '' && $data['xxl'] !== null) ? (int)$data['xxl'] : null;
     $xxxl = ($data['xxxl'] !== '' && $data['xxxl'] !== null) ? (int)$data['xxxl'] : null;
 
+    // Changed bind types for sizes (7 sizes + quantity) from i to s (or d) to better handle NULLs if the driver is picky
+    // Although 'i' should handle NULL, 's' is often safer for nullable fields in prepared statements to avoid 0 coercion
+    // Sizes are indices 2-8. Quantity is index 9.
+    // Original: "ssiiiiiiiisssisisssd"
+    // New:      "sssssssssisssisisssd" (sizes as s)
     $stmt->bind_param(
-        "ssiiiiiiiisssisisssd",
+        "sssssssssisssisisssd",
         $data['sku'], $data['category'],
         $xs, $s, $m, $l, $xl,
         $xxl, $xxxl, 
@@ -438,8 +537,11 @@ if ($action === 'list' || $action === '') {
     $xxl = ($data['xxl'] !== '' && $data['xxl'] !== null) ? (int)$data['xxl'] : null;
     $xxxl = ($data['xxxl'] !== '' && $data['xxxl'] !== null) ? (int)$data['xxxl'] : null;
 
+    // Changed bind types for sizes from i to s
+    // Original: "ssiiiiiiiisssisissdi"
+    // New:      "sssssssssisssisissdi"
     $stmt->bind_param(
-        "ssiiiiiiiisssisissdi",
+        "sssssssssisssisissdi",
         $data['sku'], $data['category'],
         $xs, $s, $m, $l, $xl,
         $xxl, $xxxl,
@@ -452,11 +554,45 @@ if ($action === 'list' || $action === '') {
     
     try {
         if ($stmt->execute()) {
-            $fields = ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'quantity', 'product_type', 'rack_location', 'status', 'purchase_cost'];
+            $fields = ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'quantity', 'product_type', 'rack_location', 'status', 'purchase_cost', 'category', 'min_stock_alert', 'live_links'];
             foreach ($fields as $f) {
-                if (isset($oldData[$f]) && isset($data[$f]) && $oldData[$f] != $data[$f]) {
-                    $diff = is_numeric($data[$f]) && is_numeric($oldData[$f]) ? $data[$f] - $oldData[$f] : 0;
-                    logAudit($id, $oldData['sku'], 'update', $f, $oldData[$f], $data[$f], $diff, $auth_user_id);
+                // Determine Old and New values
+                $valOld = $oldData[$f] ?? null;
+                $valNew = isset($data[$f]) ? $data[$f] : null;
+                
+                // Normalization for comparison
+                $isNumericField = in_array($f, ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'quantity', 'min_stock_alert', 'purchase_cost']);
+                
+                $changed = false;
+                $diff = 0;
+                
+                if ($isNumericField) {
+                    // Treat '' and NULL as null (0 is distinct)
+                    $nOld = ($valOld === null || $valOld === '') ? null : (float)$valOld;
+                    $nNew = ($valNew === null || $valNew === '') ? null : (float)$valNew;
+                    
+                    if ($nOld !== $nNew) {
+                        $changed = true;
+                        // Calculate diff treating null as 0 for arithmetic
+                        $dOld = $nOld ?? 0;
+                        $dNew = $nNew ?? 0;
+                        $diff = $dNew - $dOld;
+                    }
+                } else {
+                    // String comparison
+                    // Normalize null to ''
+                    $sOld = (string)$valOld; 
+                    $sNew = (string)$valNew;
+                    if ($sOld !== $sNew) {
+                        $changed = true;
+                    }
+                }
+
+                if ($changed) {
+                    // Use loose 'null' string for logging clarity if actual null
+                    $logOld = ($valOld === null) ? 'NULL' : $valOld;
+                    $logNew = ($valNew === null) ? 'NULL' : $valNew;
+                    logAudit($id, $oldData['sku'], 'update', $f, $logOld, $logNew, $diff, $auth_user_id);
                 }
             }
             echo json_encode(["success" => true]);
@@ -514,7 +650,7 @@ if ($action === 'list' || $action === '') {
     // Admin only check ideally, but frontend handles visibility mostly.
     
     // Total Quantity by Category
-    $qtyRes = $mysqli->query("SELECT category, SUM(IF(product_type='unitary', quantity, xs+s+m+l+xl+xxl+xxxl)) as total_qty FROM inventory WHERE status!='archived' GROUP BY category");
+    $qtyRes = $mysqli->query("SELECT category, SUM(IF(product_type='unitary', quantity, COALESCE(xs,0)+COALESCE(s,0)+COALESCE(m,0)+COALESCE(l,0)+COALESCE(xl,0)+COALESCE(xxl,0)+COALESCE(xxxl,0))) as total_qty FROM inventory WHERE status!='archived' GROUP BY category");
     $qty_stats = [];
     while ($row = $qtyRes->fetch_assoc()) {
         $qty_stats[] = $row;
@@ -522,7 +658,7 @@ if ($action === 'list' || $action === '') {
 
     // Total Value by Category
     // Logic: If Manufacture Cost (sc.total_cost) exists (>0), use it. Else use Purchase Cost (i.purchase_cost).
-    $valRes = $mysqli->query("SELECT i.category, SUM(IF(i.product_type='unitary', i.quantity, (i.xs+i.s+i.m+i.l+i.xl+i.xxl+i.xxxl)) * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) as total_value FROM inventory i LEFT JOIN sku_costings sc ON i.sku = sc.sku WHERE i.status!='archived' GROUP BY category");
+    $valRes = $mysqli->query("SELECT i.category, SUM(IF(i.product_type='unitary', i.quantity, (COALESCE(i.xs,0)+COALESCE(i.s,0)+COALESCE(i.m,0)+COALESCE(i.l,0)+COALESCE(i.xl,0)+COALESCE(i.xxl,0)+COALESCE(i.xxxl,0))) * IF(COALESCE(sc.total_cost, 0) > 0, sc.total_cost, COALESCE(i.purchase_cost, 0))) as total_value FROM inventory i LEFT JOIN sku_costings sc ON i.sku = sc.sku WHERE i.status!='archived' GROUP BY category");
     $val_stats = [];
     while ($row = $valRes->fetch_assoc()) {
         $val_stats[] = $row;

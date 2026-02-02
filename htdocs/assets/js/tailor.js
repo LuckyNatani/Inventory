@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
 
                 <td class="px-2 py-2 whitespace-nowrap text-[10px] md:text-xs text-gray-400">
-                    ${item.updated_at ? new Date(item.updated_at).toLocaleDateString() : '-'}
+                    ${item.updated_at ? formatTimestamp(item.updated_at) : '-'}
                 </td>
                 <td class="px-2 py-2 whitespace-nowrap text-right text-xs font-medium">
                     <button class="edit-btn text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-colors border border-indigo-200"
@@ -503,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">${new Date(log.created_at).toLocaleString()}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">${formatTimestamp(log.created_at)}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">${log.sku}</td>
                             <td class="px-6 py-4 text-sm text-gray-600">${changesHtml}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${log.username || 'Unknown'}</td>

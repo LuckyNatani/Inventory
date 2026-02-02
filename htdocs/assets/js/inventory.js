@@ -23,7 +23,7 @@ function currentFilters() {
 
 function parseStockInput(raw) {
   const str = String(raw || '').trim();
-  if (str === '') return 0;
+  if (str === '') return '';
 
   // Simple number: "10"
   if (/^\d+$/.test(str)) {
@@ -218,9 +218,10 @@ function renderInventory(data) {
       row.innerHTML = `
           <td class="sticky left-0 z-10 bg-white border-r border-gray-100 px-2 py-2 md:px-6 md:py-4 whitespace-nowrap text-xs md:text-base text-gray-800 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
             ${item.sku || '-'} <span class="text-[10px] text-gray-400 block">${isUnitary ? '(Unitary)' : ''}</span>
+
           </td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center">
-            <div class="flex items-center justify-center gap-2 flex-wrap max-w-[150px]">
+            <div class="grid grid-cols-3 gap-2 w-fit mx-auto">
                 ${(item.live_links || '').split(',').map(url => {
         url = url.trim();
         if (!url) return '';
@@ -250,13 +251,21 @@ function renderInventory(data) {
              <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base ${formatSize(item.xxxl, item.min_stock_alert).cls}">${formatSize(item.xxxl, item.min_stock_alert).text}</td>`
         }
           <td class="px-1 py-2 md:px-3 md:py-4 text-center font-bold text-gray-700 bg-gray-50 text-xs md:text-base">${totalQty}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600" data-role="admin,production">${item.cost_price ? Number(item.cost_price).toFixed(0) : '-'}</td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600" data-role="admin,production">${item.purchase_cost ? Number(item.purchase_cost).toFixed(2) : '-'}</td>
+          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600" data-role="admin,production">
+              <div class="flex items-center justify-center gap-1 group">
+                 <span>${item.cost_price ? Number(item.cost_price).toFixed(0) : '-'}</span>
+                 ${item.cost_price ? `<i class="fas fa-history text-xs text-indigo-300 hover:text-indigo-600 cursor-pointer transition-colors" onclick="openCostPriceHistory('${item.sku}')" title="View Cost History"></i>` : ''}
+              </div>
+          </td>
+          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600" data-role="admin,production">${item.cost_price ? '-' : (item.purchase_cost ? Number(item.purchase_cost).toFixed(2) : '-')}</td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base text-gray-600 font-medium" data-role="admin">${(item.cost_price || item.purchase_cost) ? '₹' + Math.round(totalQty * Number(item.cost_price || item.purchase_cost)).toLocaleString() : '-'}</td>
+          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-base font-medium ${item.sold_30d > 0 ? 'text-indigo-600 font-bold' : 'text-gray-400'}">
+              ${Number(item.sold_30d) > 0 ? Number(item.sold_30d).toLocaleString() : '-'}
+          </td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center">
             <img src="${fullImgUrl}" onerror="this.src='fallback.jpg'" class="w-8 h-8 md:w-10 md:h-10 object-cover rounded cursor-pointer preview-img shadow-sm hover:scale-110 transition-transform" data-src="${fullImgUrl}" />
           </td>
-          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-[10px] md:text-sm text-gray-500">${item.updated_at || '-'}</td>
+          <td class="px-1 py-2 md:px-3 md:py-4 text-center text-[10px] md:text-sm text-gray-500">${item.updated_at ? formatTimestamp(item.updated_at) : '-'}</td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center text-[10px] md:text-sm text-gray-500">${item.updated_by_name || item.updated_by || '-'}</td>
           <td class="px-1 py-2 md:px-3 md:py-4 text-center text-xs md:text-sm">
              <button class="text-blue-500 hover:text-blue-700 hover:underline" onclick="openHistoryModal('${item.sku}')">Show</button>
@@ -273,10 +282,123 @@ function renderInventory(data) {
   document.getElementById('lowStockCount').textContent = data.stats.low;
   document.getElementById('zeroStockCount').textContent = data.stats.zero;
   document.getElementById('activeStockCount').textContent = data.stats.active || 0;
+  // New Stats
+  if (document.getElementById('slowStockCount')) document.getElementById('slowStockCount').textContent = data.stats.slow || 0;
+  if (document.getElementById('deadStockCount')) document.getElementById('deadStockCount').textContent = data.stats.dead || 0;
 
   setupPagination(data.total);
   controlUIByRole();
+  highlightActiveCard();
 }
+
+// ...existing code...
+
+// --- Event Listeners and Fixes ---
+
+
+// Filter Cards Logic
+const cardMap = {
+  'statActiveStock': 'active',
+  'statLowStock': 'low',
+  'statZeroStock': 'zero',
+  'statSlowStock': 'slow',
+  'statDeadStock': 'dead',
+  'statTotal': ''
+};
+
+Object.keys(cardMap).forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('click', () => {
+      currentStock = cardMap[id];
+      currentPage = 1;
+      fetchInventory(currentFilters());
+      highlightActiveCard();
+    });
+  }
+});
+
+function highlightActiveCard() {
+  // Styles Map (Accent Colors)
+  const styles = {
+    'active': { color: 'green', shadow: 'shadow-[0_4px_20px_-2px_rgba(22,163,74,0.2)]' },
+    'low': { color: 'amber', shadow: 'shadow-[0_4px_20px_-2px_rgba(217,119,6,0.2)]' },
+    'zero': { color: 'red', shadow: 'shadow-[0_4px_20px_-2px_rgba(220,38,38,0.2)]' },
+    'slow': { color: 'yellow', shadow: 'shadow-[0_4px_20px_-2px_rgba(202,138,4,0.2)]' },
+    'dead': { color: 'gray', shadow: 'shadow-[0_4px_20px_-2px_rgba(75,85,99,0.2)]' },
+    'default': { color: 'blue', shadow: 'shadow-[0_4px_20px_-2px_rgba(37,99,235,0.2)]' }
+  };
+
+  // Reset all cards
+  Object.keys(cardMap).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // Reset Card Styles
+    el.className = el.className.replace(/\bbg-\w+-50\b/g, 'bg-white'); // Remove tinted bg
+    el.classList.remove('border-t-4'); // Remove top border
+    // Remove dynamic border colors and shadows
+    el.classList.remove('border-green-500', 'border-amber-500', 'border-red-500', 'border-yellow-500', 'border-gray-500', 'border-indigo-500', 'border-blue-500', 'border-slate-500');
+    el.classList.remove('border-t-green-500', 'border-t-amber-500', 'border-t-red-500', 'border-t-yellow-500', 'border-t-gray-500', 'border-t-indigo-500', 'border-t-blue-500');
+    el.classList.remove('shadow-[0_4px_20px_-2px_rgba(22,163,74,0.2)]', 'shadow-[0_4px_20px_-2px_rgba(217,119,6,0.2)]', 'shadow-[0_4px_20px_-2px_rgba(220,38,38,0.2)]', 'shadow-[0_4px_20px_-2px_rgba(202,138,4,0.2)]', 'shadow-[0_4px_20px_-2px_rgba(75,85,99,0.2)]', 'shadow-[0_4px_20px_-2px_rgba(79,70,229,0.2)]', 'shadow-[0_4px_20px_-2px_rgba(37,99,235,0.2)]', 'shadow-[0_4px_20px_-2px_rgba(100,116,139,0.2)]');
+    el.style.transform = '';
+
+    // Add default border back if missing (simplified reset)
+    el.classList.add('border', 'border-gray-100');
+
+    // Reset Icon Styles (Find the rounded-full div)
+    const iconContainer = el.querySelector('div.rounded-full');
+    if (iconContainer) {
+      // Reset BG intensity and Text intensity
+      // We assume default state is bg-{color}-50 and text-{color}-600
+      // Selected state will be bg-{color}-100 and text-{color}-700
+      const colorClass = iconContainer.className.match(/text-(\w+)-600/);
+      if (colorClass) {
+        const color = colorClass[1];
+        iconContainer.classList.remove(`bg-${color}-100`, `text-${color}-700`);
+        iconContainer.classList.add(`bg-${color}-50`, `text-${color}-600`);
+        iconContainer.classList.remove('scale-110');
+      }
+    }
+  });
+
+  // Identify Active Card
+  let activeId = 'statTotal';
+  let config = styles['default'];
+
+  if (currentStock === 'active') { activeId = 'statActiveStock'; config = styles['active']; }
+  else if (currentStock === 'low') { activeId = 'statLowStock'; config = styles['low']; }
+  else if (currentStock === 'zero') { activeId = 'statZeroStock'; config = styles['zero']; }
+  else if (currentStock === 'slow') { activeId = 'statSlowStock'; config = styles['slow']; }
+  else if (currentStock === 'dead') { activeId = 'statDeadStock'; config = styles['dead']; }
+
+  // Apply Active Styles
+  const activeEl = document.getElementById(activeId);
+  if (activeEl) {
+    const c = config.color;
+
+    // Card Container
+    activeEl.classList.remove('bg-white', 'border', 'border-gray-100'); // Remove white bg and default border
+    activeEl.classList.add(`bg-${c}-50`); // Tinted BG
+    activeEl.classList.add('border-t-4', `border-t-${c}-500`); // Top Accent
+    // Side borders? Let's keep it clean or add transparent side borders if needed for layout stability. 
+    // Usually removing border might shift layout by 1px. To prevent shift, we can use border-transparent.
+    activeEl.classList.add('border-x', 'border-b', 'border-transparent');
+
+    activeEl.classList.add(config.shadow); // Soft Glow
+
+    // Icon Boost
+    const iconIcon = activeEl.querySelector('div.rounded-full');
+    if (iconIcon) {
+      // Ideally we match the color of the card for the icon boost
+      // The icon might have a different color class in HTML (like statTotal is text-indigo-600)
+      // We force the boost on the existing color logic or just use the config color
+      iconIcon.classList.remove(`bg-${c}-50`, `text-${c}-600`);
+      iconIcon.classList.add(`bg-${c}-100`, `text-${c}-700`, 'scale-110', 'transition-transform', 'duration-300');
+    }
+  }
+}
+
 
 function formatSize(val, minStock) {
   if (val === null || val === undefined || val === '') return { cls: 'text-gray-300', text: '-' };
@@ -575,9 +697,14 @@ document.getElementById('inventoryTableBody').addEventListener('click', function
         const preview = document.getElementById('imagePreview');
         if (preview) {
           const baseImgUrl = (typeof CONFIG !== 'undefined' && CONFIG.IMAGE_BASE_URL) ? CONFIG.IMAGE_BASE_URL : "assets/images/products/";
-          // Logic matches renderInventory
-          const imgPath = product.img1 || encodeURIComponent(product.sku || '').replace(/%20/g, '%2520');
-          preview.src = `${baseImgUrl}${imgPath}.webp`;
+          let src = '';
+          if (product.img1 && (product.img1.startsWith('http') || product.img1.startsWith('data:'))) {
+            src = product.img1;
+          } else {
+            const imgPath = product.img1 || encodeURIComponent(product.sku || '').replace(/%20/g, '%2520');
+            src = `${baseImgUrl}${imgPath}.webp`;
+          }
+          preview.src = src;
           preview.classList.remove('hidden');
         }
 
@@ -646,44 +773,7 @@ document.getElementById('rackFilter').addEventListener('input', function (e) {
   fetchInventory(currentFilters());
 });
 
-function highlightSelectedStatCard(cardId) {
-  document.querySelectorAll('.stat-card').forEach(card => {
-    card.classList.remove('selected');
-    // Remove ring if present
-    card.classList.remove('ring-2', 'ring-indigo-500');
-  });
-  const card = document.getElementById(cardId);
-  card.classList.add('selected');
-  card.classList.add('ring-2', 'ring-indigo-500');
-}
-
-document.getElementById('statLowStock').addEventListener('click', () => {
-  currentStock = 'low';
-  currentPage = 1;
-  highlightSelectedStatCard('statLowStock');
-  fetchInventory(currentFilters());
-});
-
-document.getElementById('statZeroStock').addEventListener('click', () => {
-  currentStock = 'zero';
-  currentPage = 1;
-  highlightSelectedStatCard('statZeroStock');
-  fetchInventory(currentFilters());
-});
-
-document.getElementById('statTotal').addEventListener('click', () => {
-  currentStock = '';
-  currentPage = 1;
-  highlightSelectedStatCard('statTotal');
-  fetchInventory(currentFilters());
-});
-
-document.getElementById('statActiveStock').addEventListener('click', () => {
-  currentStock = 'active';
-  currentPage = 1;
-  highlightSelectedStatCard('statActiveStock');
-  fetchInventory(currentFilters());
-});
+// Redundant listeners removed. cardMap logic handles this.
 
 
 document.addEventListener('keydown', function (e) {
@@ -692,7 +782,7 @@ document.addEventListener('keydown', function (e) {
     window.open(`${apiUrl}?action=export`, '_blank');
   }
 });
-document.querySelectorAll("#s, #m, #l, #xl, #xxl, #xxxl").forEach(input => {
+document.querySelectorAll("#xs, #s, #m, #l, #xl, #xxl, #xxxl").forEach(input => {
   input.addEventListener("focus", function () {
     // store currently shown numeric value as original
     this.dataset.original = String(this.value || '0');
@@ -995,6 +1085,8 @@ window.openHistoryModal = function (sku) {
   historySku = sku;
   historyPage = 1;
   historyHasMore = true;
+  // Mark as Audit History
+  document.getElementById('historyList').dataset.mode = 'audit';
 
   document.getElementById('historyModalTitle').textContent = `History for SKU: ${sku}`;
   document.getElementById('historyList').innerHTML = ''; // Clear prev
@@ -1003,11 +1095,63 @@ window.openHistoryModal = function (sku) {
   fetchHistory();
 };
 
+window.openCostPriceHistory = (sku) => {
+  // Mark as Cost History
+  document.getElementById('historyList').dataset.mode = 'cost';
+
+  document.getElementById('historyModalTitle').textContent = `Cost History for SKU: ${sku}`;
+  const list = document.getElementById('historyList');
+  list.innerHTML = '';
+  document.getElementById('historyModal').classList.remove('hidden');
+
+  document.getElementById('historyLoading').classList.remove('hidden');
+
+  // Fetch from operational_cost API
+  fetch(`api/operational_cost.php?action=history_log&sku=${sku}`)
+    .then(res => res.json())
+    .then(data => {
+      renderCostHistoryItems(data);
+    })
+    .catch(err => {
+      console.error(err);
+      list.innerHTML = `<div class="text-red-500 text-center">Failed to load history.</div>`;
+    })
+    .finally(() => {
+      document.getElementById('historyLoading').classList.add('hidden');
+    });
+};
+
+function renderCostHistoryItems(items) {
+  const list = document.getElementById('historyList');
+  if (!items || items.length === 0) {
+    list.innerHTML = `<div class="text-gray-400 text-center py-4">No cost history found.</div>`;
+    return;
+  }
+
+  items.forEach(log => {
+    const div = document.createElement('div');
+    div.className = `p-3 rounded-lg border flex flex-col gap-1 text-sm bg-blue-50 border-blue-100 text-blue-900`;
+
+    div.innerHTML = `
+            <div class="flex justify-between items-start">
+                <span class="font-semibold capitalize">${log.field_changed.replace('_', ' ')}</span>
+                <span class="text-xs text-gray-500">${formatTimestamp(log.changed_at)}</span>
+            </div>
+            <div class="flex justify-between items-center mt-1">
+                <span>Value: <span class="line-through text-gray-400">${Number(log.old_value).toFixed(2)}</span> <i class="fas fa-arrow-right text-xs mx-1"></i> <span class="font-medium">${Number(log.new_value).toFixed(2)}</span></span>
+                <span class="text-xs bg-white px-2 py-0.5 rounded border border-blue-200">By: ${log.username || 'User ' + log.changed_by}</span>
+            </div>
+        `;
+    list.appendChild(div);
+  });
+}
+
 document.getElementById('closeHistoryModal').onclick = () => {
   document.getElementById('historyModal').classList.add('hidden');
 };
 
 function fetchHistory() {
+  if (document.getElementById('historyList').dataset.mode === 'cost') return; // Don't fetch audit history if in cost mode
   if (historyLoading || !historyHasMore) return;
 
   historyLoading = true;
@@ -1056,7 +1200,7 @@ function renderHistoryItems(items) {
     div.innerHTML = `
             <div class="flex justify-between items-start">
                 <span class="font-semibold capitalize">${log.action} (${log.field_changed})</span>
-                <span class="text-xs text-gray-500">${log.changed_at}</span>
+                <span class="text-xs text-gray-500">${formatTimestamp(log.changed_at)}</span>
             </div>
             <div class="flex justify-between items-center mt-1">
                 <span>Value: <span class="line-through text-gray-400">${log.old_value}</span> <i class="fas fa-arrow-right text-xs mx-1"></i> <span class="font-medium">${log.new_value}</span></span>
@@ -1070,6 +1214,7 @@ function renderHistoryItems(items) {
 
 // Infinite Scroll
 document.getElementById('historyList').addEventListener('scroll', function () {
+  if (document.getElementById('historyList').dataset.mode === 'cost') return; // Disable infinite scroll for cost mode (all loaded at once)
   if (this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
     fetchHistory();
   }
@@ -1099,3 +1244,4 @@ if (skuInput) {
     this.value = this.value.toUpperCase();
   });
 }
+

@@ -4,10 +4,10 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 date_default_timezone_set('Asia/Kolkata');
 
-$host = "sql300.infinityfree.com";
-$master_user = "if0_39430414";
-$master_pass = "yFvxr5LUR0O7Nr";
-$master_db = "if0_39430414_test_inventory";
+$host = "127.0.0.1:3306";
+$master_user = "u988569002_eazyinventory";
+$master_pass = "7@BgliVI";
+$master_db = "u988569002_eazyinventory";
 
 // 1. Connect to Master DB
 $mysqli = new mysqli($host, $master_user, $master_pass, $master_db);

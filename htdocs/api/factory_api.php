@@ -685,13 +685,46 @@ if ($action === 'save_costing') {
     $total = (float)($data['total_cost'] ?? 0);
     
     // Check if exists
-    $check = $mysqli->query("SELECT costing_id FROM sku_costings WHERE sku='$sku'");
+    // Check if exists
+    $check = $mysqli->query("SELECT * FROM sku_costings WHERE sku='$sku'");
     if ($check === false) {
          echo json_encode(['success' => false, 'message' => 'Database error: Table missing.']);
          exit;
     }
     
     if ($check->num_rows > 0) {
+        $existing = $check->fetch_assoc();
+        
+        // Log History for Numeric Fields
+        // Exclude calculated totals to prevents duplicate/redundant logs (e.g. Rate change logs rate AND total)
+        $numeric_fields = [
+            'top_cut' => $top_cut, 'top_rate' => $top_rate, 'top_shortage' => $top_shortage,
+            'bottom_cut' => $bottom_cut, 'bottom_rate' => $bottom_rate, 'bottom_shortage' => $bottom_shortage,
+            'top_bottom_cut' => $tb_cut, 'top_bottom_rate' => $tb_rate, 'top_bottom_shortage' => $tb_shortage,
+            'astar_cut' => $astar_cut, 'astar_rate' => $astar_rate, 'astar_shortage' => $astar_shortage,
+            'embroidery_cut' => $emb_cut, 'embroidery_rate' => $emb_rate, 'embroidery_shortage' => $emb_shortage,
+            'dupatta_cut' => $dup_cut, 'dupatta_rate' => $dup_rate, 'dupatta_shortage' => $dup_shortage,
+            'digital_print_cut' => $dp_cut, 'digital_print_rate' => $dp_rate, 'digital_print_shortage' => $dp_shortage,
+            'digital_print_dupatta_cut' => $dp_dup_cut, 'digital_print_dupatta_rate' => $dp_dup_rate, 'digital_print_dupatta_shortage' => $dp_dup_shortage,
+            'stitching_rate' => $stitching_rate, 'stitching_markup' => $stitching_markup,
+            'dying_rate' => $dying_rate, 'dying_markup' => $dying_markup,
+            'knit_rate' => $knit_rate, 'knit_markup' => $knit_markup,
+            'press_rate' => $press_rate, 'press_markup' => $press_markup,
+            'operational_cost' => $operational, 'extra_cost' => $extra, 'final_markup' => $final_markup, 'total_cost' => $total
+        ];
+
+        $current_month = date('Y-m');
+        $hist_stmt = $mysqli->prepare("INSERT INTO sku_costing_history (sku, field_changed, old_value, new_value, changed_by, month_ref) VALUES (?, ?, ?, ?, ?, ?)");
+        
+        foreach ($numeric_fields as $field => $new_val) {
+            $old_val = (float)($existing[$field] ?? 0);
+            // Floating point comparison with small epsilon
+            if (abs($old_val - $new_val) > 0.001) {
+                $hist_stmt->bind_param("ssddis", $sku, $field, $old_val, $new_val, $user_id, $current_month);
+                $hist_stmt->execute();
+            }
+        }
+
         $sql = "UPDATE sku_costings SET 
             top_fabric=?, top_cut=?, top_rate=?, top_shortage=?, top_total=?,
             bottom_fabric=?, bottom_cut=?, bottom_rate=?, bottom_shortage=?, bottom_total=?,
