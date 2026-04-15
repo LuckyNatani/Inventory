@@ -1,0 +1,10 @@
+# Graphify Cache
+graphify-out/
+
+# Environment
+.env
+.graphify_python/
+
+# Logs and temporary files
+*.log
+tmp/

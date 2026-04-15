@@ -33,62 +33,83 @@ async function fetchUsers() {
     try {
         const res = await fetch('api/users.php?action=list');
         const data = await res.json();
-        const tbody = document.getElementById('usersTableBody');
+        const listContainer = document.getElementById('usersList');
 
         if (data.success) {
-            tbody.innerHTML = '';
+            listContainer.innerHTML = '';
             if (data.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No users found</td></tr>';
+                listContainer.innerHTML = '<div class="text-center py-8 text-gray-500">No users found</div>';
                 return;
             }
 
             data.data.forEach(user => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0';
+                const item = document.createElement('div');
+                item.className = 'grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-4 py-4 md:px-6 md:py-3 bg-white items-start md:items-center hover:bg-gray-50 transition-colors';
 
                 // Format Role badges
                 const roles = user.role.split(',').map(r =>
                     `<span class="inline-block bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded border border-indigo-100 capitalize mr-1">${r}</span>`
                 ).join('');
 
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3">
-                                ${user.username.charAt(0).toUpperCase()}
-                            </div>
-                            <div class="text-sm font-medium text-gray-900">${user.username}</div>
+                item.innerHTML = `
+                    <!-- User Info (Mobile: Header) -->
+                    <div class="col-span-1 md:col-span-3 flex items-center w-full">
+                        <div class="h-10 w-10 md:h-8 md:w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
+                            ${user.username.charAt(0).toUpperCase()}
                         </div>
-                    </td>
-                    <td class="px-6 py-4">
-                        ${roles}
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                        <div class="flex flex-col md:flex-row md:items-center gap-1">
+                            <div class="text-sm font-bold md:font-medium text-gray-900">${user.username}</div>
+                        </div>
+                    </div>
+
+                    <!-- Role -->
+                    <div class="col-span-1 md:col-span-2 flex items-center gap-2">
+                         <span class="md:hidden text-xs text-gray-500 font-bold uppercase w-20">Role:</span>
+                         <div class="flex flex-wrap gap-1">${roles}</div>
+                    </div>
+
+                    <!-- Created At -->
+                    <div class="col-span-1 md:col-span-2 text-sm text-gray-500 flex items-center gap-2">
+                        <span class="md:hidden text-xs text-gray-500 font-bold uppercase w-20">Created:</span>
                         ${user.created_at ? formatTimestamp(user.created_at) : '-'}
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-500">
-                        <div><i class="fas fa-phone text-xs w-4"></i> ${user.mobile1 || '-'}</div>
-                        ${user.mobile2 ? `<div><i class="fas fa-phone text-xs w-4"></i> ${user.mobile2}</div>` : ''}
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                        <div class="font-medium text-gray-700 mb-1">UID: ${user.aadhar_number || '-'}</div>
-                        <div class="truncate" title="${user.address}">${user.address || '-'}</div>
-                    </td>
-                    <td class="px-6 py-4 text-right text-sm font-medium">
-                        <button onclick="editUser(${user.sno})" class="text-indigo-600 hover:text-indigo-900 mr-3 transition-colors bg-indigo-50 p-2 rounded hover:bg-indigo-100" title="Edit">
-                            <i class="fas fa-edit"></i>
+                    </div>
+
+                    <!-- Contact -->
+                    <div class="col-span-1 md:col-span-2 text-sm text-gray-500 space-y-1">
+                        <div class="flex items-center gap-2">
+                             <span class="md:hidden text-xs text-gray-500 font-bold uppercase w-20">Mobile:</span>
+                             <div>
+                                <div><i class="fas fa-phone text-xs w-4"></i> ${user.mobile1 || '-'}</div>
+                                ${user.mobile2 ? `<div><i class="fas fa-phone text-xs w-4"></i> ${user.mobile2}</div>` : ''}
+                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Address/UID -->
+                    <div class="col-span-1 md:col-span-2 text-sm text-gray-500 flex items-start gap-2 max-w-xs">
+                         <span class="md:hidden text-xs text-gray-500 font-bold uppercase w-20 flex-shrink-0">Address:</span>
+                         <div>
+                            <div class="font-medium text-gray-700 mb-1">UID: ${user.aadhar_number || '-'}</div>
+                            <div class="truncate line-clamp-2 md:line-clamp-1" title="${user.address}">${user.address || '-'}</div>
+                         </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="col-span-1 md:col-span-1 flex justify-end md:justify-end gap-3 md:gap-2 mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-0 border-gray-100 w-full md:w-auto">
+                        <button onclick="editUser(${user.sno})" class="flex-1 md:flex-none text-indigo-600 hover:text-indigo-900 transition-colors bg-indigo-50 p-2 rounded hover:bg-indigo-100 text-center" title="Edit">
+                            <i class="fas fa-edit"></i> <span class="md:hidden ml-1 font-medium">Edit</span>
                         </button>
-                        <button onclick="deleteUser(${user.sno})" class="text-red-600 hover:text-red-900 transition-colors bg-red-50 p-2 rounded hover:bg-red-100" title="Delete">
-                            <i class="fas fa-trash-alt"></i>
+                        <button onclick="deleteUser(${user.sno})" class="flex-1 md:flex-none text-red-600 hover:text-red-900 transition-colors bg-red-50 p-2 rounded hover:bg-red-100 text-center" title="Delete">
+                            <i class="fas fa-trash-alt"></i> <span class="md:hidden ml-1 font-medium">Delete</span>
                         </button>
-                    </td>
+                    </div>
                 `;
-                tbody.appendChild(tr);
+                listContainer.appendChild(item);
             });
         }
     } catch (e) {
         console.error(e);
-        document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-red-500">Error loading users</td></tr>';
+        document.getElementById('usersList').innerHTML = '<div class="text-center py-8 text-red-500">Error loading users</div>';
     }
 }
 

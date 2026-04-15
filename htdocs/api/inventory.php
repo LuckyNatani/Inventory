@@ -811,6 +811,115 @@ if ($action === 'list' || $action === '') {
         http_response_code(500);
         echo json_encode(["success" => false, "error" => "Database update failed: " . $mysqli->error]);
     }
+} elseif ($action === 'bulk_add_stock') {
+    if (!$can_edit) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Permission denied']);
+        exit;
+    }
+
+    $input = json_decode(file_get_contents("php://input"), true);
+    $items = $input['items'] ?? [];
+    
+    if (empty($items)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'No items provided']);
+        exit;
+    }
+
+    $auth_user_id = $_SESSION['user_id'];
+    $updated_count = 0;
+    $errors = [];
+
+    // Valid sizes for validation
+    $validSizes = ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl'];
+
+    foreach ($items as $item) {
+        $sku = escape($item['sku'] ?? '');
+        $qty = (int)($item['quantity'] ?? 0);
+        $size = strtolower(escape($item['size'] ?? '')); // Can be empty/null for unitary
+
+        if (empty($sku) || $qty <= 0) {
+            $errors[] = ["sku" => $sku, "error" => "Invalid SKU or Quantity"];
+            continue;
+        }
+
+        // Fetch Product Check
+        $res = $mysqli->query("SELECT id, product_type, sku FROM inventory WHERE sku = '$sku' AND status != 'archived'");
+        if (!$res || $res->num_rows === 0) {
+            $errors[] = ["sku" => $sku, "error" => "Product not found"];
+            continue;
+        }
+
+        $product = $res->fetch_assoc();
+        $pid = $product['id'];
+        $pType = $product['product_type'];
+
+        $targetField = '';
+
+        if ($pType === 'unitary') {
+            // Ignore size input, update quantity
+            $targetField = 'quantity';
+        } else {
+            // Sized product - Validate size
+            if (!in_array($size, $validSizes)) {
+                $errors[] = ["sku" => $sku, "error" => "Invalid size: " . $size];
+                continue;
+            }
+            $targetField = $size;
+        }
+
+        // Perform Update
+        // We use direct SQL update for atomicity
+        $stmt = $mysqli->prepare("UPDATE inventory SET $targetField = $targetField + ?, updated_by = ?, updated_at = NOW() WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("iii", $qty, $auth_user_id, $pid);
+            if ($stmt->execute()) {
+                if ($stmt->affected_rows > 0) {
+                    $updated_count++;
+                    
+                    // Audit Log
+                    // Use a special ref_type 'return_entry'
+                    // We need previous value for perfect audit log, but for performance in bulk we might skip fetching IT specifically again if we trust arithmetic.
+                    // However, logAudit requires old_val/new_val. 
+                    // To be correct, we should have fetched the specific column value above. 
+                    // Let's do a quick fetch of the current value to be safe/correct for logs.
+                    // Or even better: Fetch it in the initial SELECT.
+                    // Refetching to be clean:
+                    $valRes = $mysqli->query("SELECT $targetField FROM inventory WHERE id = $pid");
+                    $valRow = $valRes->fetch_assoc();
+                    $newVal = $valRow[$targetField];
+                    $oldVal = $newVal - $qty;
+
+                    logAudit($pid, $product['sku'], 'return_add', $targetField, $oldVal, $newVal, $qty, $auth_user_id, 'return_page', null, "Manual Return Entry");
+                } else {
+                    $errors[] = ["sku" => $sku, "error" => "No rows updated (Db Error?)"];
+                }
+                $stmt->close();
+            } else {
+                $errors[] = ["sku" => $sku, "error" => "Update execution failed"];
+            }
+        } else {
+             $errors[] = ["sku" => $sku, "error" => "Prepare statement failed"];
+        }
+    }
+
+    if ($updated_count > 0 || count($errors) === 0) {
+         echo json_encode([
+            "success" => true,
+            "updated_count" => $updated_count,
+            "errors" => $errors
+        ]);
+    } else {
+        // If nothing worked and we have errors
+        http_response_code(500); // or 200 with success=false? Let's stick to success=true + errors array for partials
+        echo json_encode([
+            "success" => false,
+            "error" => "Failed to update any items",
+            "errors" => $errors
+        ]);
+    }
+
 }
 
 $mysqli->close();

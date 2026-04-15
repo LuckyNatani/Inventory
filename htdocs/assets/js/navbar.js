@@ -22,11 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuItems = [
         { name: 'Dashboard', icon: 'fas fa-home', link: '/dashboard.html', roles: ['admin', 'sub-admin', 'production'] },
         { name: 'Inventory', icon: 'fas fa-boxes', link: '/inventory.html', roles: ['admin', 'sub-admin', 'stocker', 'viewer', 'production'] },
-
         { name: 'Picklists', icon: 'fas fa-clipboard-list', link: '/admin/picklists.html', roles: ['admin', 'sub-admin', 'production'] },
         { name: 'Pending Orders', icon: 'fas fa-clock', link: '/admin/pending-orders.html', roles: ['admin', 'sub-admin', 'production'] },
         { name: 'Factory Rates', icon: 'fas fa-industry', link: '/factory_rates.html', roles: ['admin', 'production'] },
-        { name: 'Return Input', icon: 'fas fa-microphone', link: '/voice_input.html', roles: ['admin', 'sub-admin', 'stocker'] },
+        { name: 'Stock Returns', icon: 'fas fa-undo', link: '/return_input.html', roles: ['admin', 'sub-admin', 'stocker'] },
         { name: 'Costing Export', icon: 'fas fa-file-excel', link: '/costing_export.html', roles: ['admin', 'production'] },
         { name: 'Tailors Cut', icon: 'fas fa-cut', link: '/tailor.html', roles: ['admin', 'production', 'tailor'] },
         { name: 'Utilities', icon: 'fas fa-tools', link: '/utilities.html', roles: ['admin', 'sub-admin', 'production'] },
@@ -39,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="h-16 flex items-center justify-center border-b border-gray-200 relative">
                 <a href="/dashboard.html" class="nav-logo flex items-center gap-3 text-2xl font-bold text-slate-800 tracking-tighter transition-all">
                     <img src="/img/eazyinventory_logo.jpeg" alt="Logo" class="w-8 h-8 rounded-lg shadow-sm">
-                    <span class="logo-text">EazyInventory</span>
+                    <span class="logo-text">EasyInventory</span>
                 </a>
                 <button id="desktopCollapseBtn" class="hidden md:flex absolute right-0 top-0 h-full w-8 items-center justify-center text-gray-400 hover:text-gray-600">
                     <i class="fas fa-chevron-right"></i>
@@ -93,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
             <div class="flex items-center gap-2">
                 <img src="/img/eazyinventory_logo.jpeg" alt="Logo" class="w-8 h-8 rounded-lg">
-                <h1 class="text-lg font-bold mobile-header-text leading-none">EazyInventory</h1>
+                <h1 class="text-lg font-bold mobile-header-text leading-none">EasyInventory</h1>
             </div>
         </div>
         

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jan 31, 2026 at 10:57 AM
+-- Generation Time: Feb 11, 2026 at 06:56 AM
 -- Server version: 11.8.3-MariaDB-log
 -- PHP Version: 7.2.34
 
@@ -82,15 +82,15 @@ CREATE TABLE `factory_price_logs` (
 
 CREATE TABLE `inventory` (
   `id` int(11) NOT NULL,
-  `s` int(11) DEFAULT 0,
-  `m` int(11) DEFAULT 0,
-  `l` int(11) DEFAULT 0,
-  `xl` int(11) DEFAULT 0,
-  `xxl` int(11) DEFAULT 0,
-  `xxxl` int(11) DEFAULT 0,
+  `s` int(11) DEFAULT NULL,
+  `m` int(11) DEFAULT NULL,
+  `l` int(11) DEFAULT NULL,
+  `xl` int(11) DEFAULT NULL,
+  `xxl` int(11) DEFAULT NULL,
+  `xxxl` int(11) DEFAULT NULL,
   `quantity` int(11) DEFAULT 0,
   `category` varchar(100) NOT NULL,
-  `xs` int(11) DEFAULT 0,
+  `xs` int(11) DEFAULT NULL,
   `img1` text NOT NULL,
   `sku` varchar(50) DEFAULT NULL,
   `product_type` enum('sized','unitary') NOT NULL DEFAULT 'sized',
@@ -125,6 +125,21 @@ CREATE TABLE `inventory_audit_log` (
   `reference_id` int(11) DEFAULT NULL,
   `notes` text DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `operational_expenses`
+--
+
+CREATE TABLE `operational_expenses` (
+  `id` int(11) NOT NULL,
+  `expense_name` varchar(100) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `expense_date` date NOT NULL,
+  `category` varchar(50) DEFAULT 'Other',
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -290,6 +305,23 @@ CREATE TABLE `sku_costings` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `sku_costing_history`
+--
+
+CREATE TABLE `sku_costing_history` (
+  `id` int(11) NOT NULL,
+  `sku` varchar(50) NOT NULL,
+  `field_changed` varchar(50) NOT NULL,
+  `old_value` decimal(10,2) DEFAULT NULL,
+  `new_value` decimal(10,2) DEFAULT NULL,
+  `changed_by` int(11) DEFAULT NULL,
+  `changed_at` timestamp NULL DEFAULT current_timestamp(),
+  `month_ref` varchar(7) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `sku_cuts`
 --
 
@@ -387,6 +419,21 @@ CREATE TABLE `users` (
   `address` text DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_settings`
+--
+
+CREATE TABLE `user_settings` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `setting_key` varchar(50) NOT NULL,
+  `setting_value` text DEFAULT NULL,
+  `setting_group` varchar(50) DEFAULT 'general',
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -433,6 +480,12 @@ ALTER TABLE `inventory`
 --
 ALTER TABLE `inventory_audit_log`
   ADD PRIMARY KEY (`log_id`);
+
+--
+-- Indexes for table `operational_expenses`
+--
+ALTER TABLE `operational_expenses`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `picklists`
@@ -482,6 +535,14 @@ ALTER TABLE `sku_costings`
   ADD KEY `updated_by_3` (`updated_by`);
 
 --
+-- Indexes for table `sku_costing_history`
+--
+ALTER TABLE `sku_costing_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `sku` (`sku`),
+  ADD KEY `changed_at` (`changed_at`);
+
+--
 -- Indexes for table `sku_cuts`
 --
 ALTER TABLE `sku_cuts`
@@ -521,6 +582,13 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `username` (`username`);
 
 --
+-- Indexes for table `user_settings`
+--
+ALTER TABLE `user_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_setting` (`user_id`,`setting_key`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -553,6 +621,12 @@ ALTER TABLE `inventory`
 --
 ALTER TABLE `inventory_audit_log`
   MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `operational_expenses`
+--
+ALTER TABLE `operational_expenses`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `picklists`
@@ -591,6 +665,12 @@ ALTER TABLE `sku_costings`
   MODIFY `costing_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `sku_costing_history`
+--
+ALTER TABLE `sku_costing_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `sku_cuts`
 --
 ALTER TABLE `sku_cuts`
@@ -619,6 +699,12 @@ ALTER TABLE `substitutions`
 --
 ALTER TABLE `users`
   MODIFY `sno` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user_settings`
+--
+ALTER TABLE `user_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

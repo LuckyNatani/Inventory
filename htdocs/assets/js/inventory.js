@@ -1128,21 +1128,58 @@ function renderCostHistoryItems(items) {
     return;
   }
 
+  // 1. Group items by timestamp (and user, just in case)
+  const groups = {};
   items.forEach(log => {
-    const div = document.createElement('div');
-    div.className = `p-3 rounded-lg border flex flex-col gap-1 text-sm bg-blue-50 border-blue-100 text-blue-900`;
+    // Create a key based on time and user
+    // We assume timestamps are identical for the same transaction
+    const key = `${log.changed_at}_${log.changed_by}`;
+    if (!groups[key]) {
+      groups[key] = {
+        timestamp: log.changed_at,
+        user: log.username || 'User ' + log.changed_by,
+        changes: []
+      };
+    }
+    groups[key].changes.push(log);
+  });
 
-    div.innerHTML = `
-            <div class="flex justify-between items-start">
-                <span class="font-semibold capitalize">${log.field_changed.replace('_', ' ')}</span>
-                <span class="text-xs text-gray-500">${formatTimestamp(log.changed_at)}</span>
-            </div>
-            <div class="flex justify-between items-center mt-1">
-                <span>Value: <span class="line-through text-gray-400">${Number(log.old_value).toFixed(2)}</span> <i class="fas fa-arrow-right text-xs mx-1"></i> <span class="font-medium">${Number(log.new_value).toFixed(2)}</span></span>
-                <span class="text-xs bg-white px-2 py-0.5 rounded border border-blue-200">By: ${log.username || 'User ' + log.changed_by}</span>
-            </div>
-        `;
-    list.appendChild(div);
+  // 2. Convert to array and sort desc by timestamp
+  const sortedGroups = Object.values(groups).sort((a, b) => {
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
+
+  // 3. Render Groups
+  sortedGroups.forEach(group => {
+    const card = document.createElement('div');
+    card.className = `p-3 rounded-lg border bg-white border-blue-100 shadow-sm flex flex-col gap-2`;
+
+    // Header: Time and User
+    card.innerHTML = `
+        <div class="flex justify-between items-center border-b border-blue-50 pb-2 mb-1">
+            <span class="text-xs text-gray-500 font-medium">
+                <i class="far fa-clock mr-1"></i> ${formatTimestamp(group.timestamp)}
+            </span>
+            <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-100">
+                ${group.user}
+            </span>
+        </div>
+        <div class="space-y-2">
+            ${group.changes.map(log => `
+                <div class="flex justify-between items-center text-sm">
+                    <span class="font-semibold text-gray-700 capitalize w-1/3 truncate" title="${log.field_changed.replace(/_/g, ' ')}">
+                        ${log.field_changed.replace(/_/g, ' ')}
+                    </span>
+                    <div class="flex items-center gap-2 text-gray-600">
+                        <span class="line-through text-xs text-gray-400">${Number(log.old_value).toFixed(2)}</span>
+                        <i class="fas fa-arrow-right text-[10px] text-blue-400"></i>
+                        <span class="font-bold text-gray-800">${Number(log.new_value).toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    list.appendChild(card);
   });
 }
 
