@@ -4,14 +4,21 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Utilities - Bulk operations and management tools" />
     <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
-    <title>Utilities - Inventory Manager</title>
+    <title>Utilities - EazyInventory</title>
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+
+    <!-- App Scripts -->
     <script src="assets/js/ui.js" defer></script>
     <script src="assets/js/config.js" defer></script>
     <script src="assets/js/navbar.js" defer></script>
-    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
 <body class="bg-gray-100">
@@ -74,7 +81,21 @@
                     </div>
                 </a>
 
-
+                <!-- Bulk Inventory Update -->
+                <a href="bulk_stock_update.html" class="block group">
+                    <div
+                        class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all border border-gray-100 h-full">
+                        <div
+                            class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mb-4 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-exchange-alt text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-emerald-600 transition-colors">
+                            Bulk
+                            Inventory Update</h3>
+                        <p class="text-sm text-gray-500">Download current stock template and upload
+                            increase/decrease quantities via Excel.</p>
+                    </div>
+                </a>
 
             </div>
         </div>

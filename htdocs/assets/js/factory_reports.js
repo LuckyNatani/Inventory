@@ -18,6 +18,7 @@ const api = {
 document.addEventListener('DOMContentLoaded', () => {
     loadMasterData();
     setupSkuAutocomplete();
+    setupProgramCalculator();
 });
 
 let loadedFactories = [];
@@ -56,7 +57,12 @@ async function loadMasterData() {
 
 function selectReport(type) {
     // Reset view
-    document.getElementById('reportFilters').classList.remove('hidden');
+    const reportFilters = document.getElementById('reportFilters');
+    const calculatorSection = document.getElementById('calculatorSection');
+    
+    reportFilters.classList.add('hidden');
+    if (calculatorSection) calculatorSection.classList.add('hidden');
+    
     document.getElementById('reportResults').classList.add('hidden');
     document.querySelectorAll('.filter-group').forEach(el => el.classList.add('hidden'));
     document.getElementById('emptyState').classList.add('hidden');
@@ -67,16 +73,21 @@ function selectReport(type) {
     event.currentTarget.classList.add('ring-2', 'ring-indigo-500', 'bg-white');
     event.currentTarget.classList.remove('bg-gray-50');
 
-    // Show specific filter
-    if (type === 'factory_sku') {
-        document.getElementById('currentReportTitle').textContent = 'Factory-wise SKU Report';
-        document.getElementById('filterFactorySku').classList.remove('hidden');
-    } else if (type === 'factory_dependency') {
-        document.getElementById('currentReportTitle').textContent = 'Factory Dependency Risk Report';
-        document.getElementById('filterDependency').classList.remove('hidden');
-    } else if (type === 'rate_history') {
-        document.getElementById('currentReportTitle').textContent = 'SKU Rate History Report';
-        document.getElementById('filterRateHistory').classList.remove('hidden');
+    // Show specific section
+    if (type === 'calculator') {
+        if (calculatorSection) calculatorSection.classList.remove('hidden');
+    } else {
+        reportFilters.classList.remove('hidden');
+        if (type === 'factory_sku') {
+            document.getElementById('currentReportTitle').textContent = 'Factory-wise SKU Report';
+            document.getElementById('filterFactorySku').classList.remove('hidden');
+        } else if (type === 'factory_dependency') {
+            document.getElementById('currentReportTitle').textContent = 'Factory Dependency Risk Report';
+            document.getElementById('filterDependency').classList.remove('hidden');
+        } else if (type === 'rate_history') {
+            document.getElementById('currentReportTitle').textContent = 'SKU Rate History Report';
+            document.getElementById('filterRateHistory').classList.remove('hidden');
+        }
     }
 }
 
@@ -179,7 +190,7 @@ runFactorySkuReport = async () => {
                 <td class="px-6 py-4 font-medium text-gray-900">${row.sku}</td>
                 <td class="px-6 py-4">${row.segments}</td>
                 <td class="px-6 py-4 font-bold text-indigo-600">₹${row.price}</td>
-                <td class="px-6 py-4 text-xs text-gray-700">${row.last_date ? formatTimestamp(row.last_date) : '-'}</td>
+                <td class="px-6 py-4 text-xs text-gray-700">${row.last_date}</td>
             </tr>
         `).join('');
         drawTable(html, ['SKU', 'Segments', 'Latest Rate', 'Last Date']);
@@ -225,7 +236,7 @@ runRateHistoryReport = async () => {
         }
         const html = res.data.map(row => `
             <tr class="hover:bg-gray-50 border-b last:border-0 transition-colors">
-                <td class="px-6 py-4 text-xs text-gray-700 whitespace-nowrap">${row.created_at ? formatTimestamp(row.created_at) : '-'}</td>
+                <td class="px-6 py-4 text-xs text-gray-700 whitespace-nowrap">${row.created_at}</td>
                 <td class="px-6 py-4 font-medium text-gray-900">${row.factory_name}</td>
                 <td class="px-6 py-4"><span class="px-2 py-1 rounded bg-gray-100 text-xs">${row.segment_name}</span></td>
                 <td class="px-6 py-4 font-bold text-gray-800">₹${row.price}</td>
@@ -274,4 +285,66 @@ function selectSkuSuggest(sku) {
     document.getElementById('historySkuInput').value = sku;
     document.getElementById('skuSuggestions').classList.add('hidden');
     runRateHistoryReport();
+}
+
+function setupProgramCalculator() {
+    const totalQtyInput = document.getElementById('calcTotalQty');
+    if (!totalQtyInput) return;
+
+    const percInputs = document.querySelectorAll('.calc-perc-input');
+    const sizes = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
+    const calculate = () => {
+        const totalQty = parseFloat(totalQtyInput.value) || 0;
+        let totalPerc = 0;
+        let totalCalculated = 0;
+
+        sizes.forEach(size => {
+            const percInput = document.getElementById(`calcPerc${size}`);
+            const resEl = document.getElementById(`calcRes${size}`);
+            
+            if (percInput && resEl) {
+                const perc = parseFloat(percInput.value) || 0;
+                totalPerc += perc;
+                
+                const reqQty = Math.round((totalQty * perc) / 100);
+                totalCalculated += reqQty;
+                
+                resEl.textContent = reqQty;
+            }
+        });
+
+        const totalPercEl = document.getElementById('calcTotalPerc');
+        if (totalPercEl) {
+            totalPercEl.textContent = `${totalPerc}%`;
+            
+            totalPercEl.classList.remove('bg-gray-200', 'text-gray-700', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+            
+            if (totalPerc > 0 && totalPerc !== 100) {
+                totalPercEl.classList.add('bg-red-100', 'text-red-700');
+            } else if (totalPerc === 100) {
+                totalPercEl.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                totalPercEl.classList.add('bg-gray-200', 'text-gray-700');
+            }
+        }
+
+        const totalResEl = document.getElementById('calcTotalRes');
+        if (totalResEl) {
+            totalResEl.textContent = totalCalculated;
+        }
+
+        const totalResBg = document.getElementById('calcTotalResBg');
+        if (totalResBg) {
+            totalResBg.classList.remove('bg-indigo-100/50', 'text-indigo-800', 'bg-amber-100/50', 'text-amber-800');
+            if (totalQty > 0 && totalCalculated !== totalQty) {
+                totalResBg.classList.add('bg-amber-100/50', 'text-amber-800');
+            } else {
+                totalResBg.classList.add('bg-indigo-100/50', 'text-indigo-800');
+            }
+        }
+    };
+
+    totalQtyInput.addEventListener('input', calculate);
+    percInputs.forEach(input => input.addEventListener('input', calculate));
 }

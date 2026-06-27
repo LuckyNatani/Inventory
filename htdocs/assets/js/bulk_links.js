@@ -45,7 +45,7 @@ async function handleUpload() {
         }
 
         // Process Data
-        // Row structure: [SKU, Link1, Link2, Link3, Link4]
+        // Row structure: [SKU, Link1, Link2, ..., Link50]
         // We skip header if it looks like a header (optional, but good practice to just scan all if user didn't specify)
         // Let's assume Row 0 might be header. If Col 0 is "SKU" (case insensitive), skip it.
 
@@ -63,9 +63,10 @@ async function handleUpload() {
             const sku = row[0] ? String(row[0]).trim() : null;
             if (!sku) continue; // Skip empty SKUs
 
-            // Collect links from col 1 to 4 (or more)
+            // Collect links from col 1 to 50 (dynamic)
             const links = [];
-            for (let c = 1; c < row.length; c++) {
+            const maxCols = Math.min(row.length, 51); // 1 for SKU + up to 50 links
+            for (let c = 1; c < maxCols; c++) {
                 if (row[c]) {
                     const link = String(row[c]).trim();
                     if (link.startsWith('http')) {

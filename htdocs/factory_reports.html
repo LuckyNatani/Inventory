@@ -3,13 +3,20 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Factory Reports - Analyze performance and dependencies">
     <link rel="icon" type="image/jpeg" href="img/eazyinventory_logo.jpeg">
-    <title>Factory Reports | Inventory Manager</title>
-    <script src="assets/js/ui.js" defer></script>
-    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+    <title>Factory Reports - EazyInventory</title>
+
+    <!-- Design System -->
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+
+    <!-- App Scripts -->
+    <script src="assets/js/ui.js" defer></script>
     <script src="assets/js/navbar.js" defer></script>
     <script src="assets/js/config.js" defer></script>
     <script src="assets/js/factory_reports.js" defer></script>
@@ -36,18 +43,18 @@
             </div>
 
             <!-- Report Selection -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <!-- Report Card 1 -->
                 <div class="report-card cursor-pointer border-2 border-transparent hover:border-indigo-500 rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm group"
                     onclick="selectReport('factory_sku')">
                     <div class="flex items-center gap-4">
                         <div
-                            class="bg-indigo-100 text-indigo-600 p-3 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                            <i class="fas fa-industry text-xl"></i>
+                            class="bg-indigo-100 text-indigo-600 p-3 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors flex-shrink-0">
+                            <i class="fas fa-industry text-xl w-6 text-center"></i>
                         </div>
                         <div>
-                            <h3 class="font-bold text-gray-700">Factory-wise SKU</h3>
-                            <p class="text-xs text-gray-700">View all SKUs worked by a factory</p>
+                            <h3 class="font-bold text-gray-700 text-sm">Factory-wise SKU</h3>
+                            <p class="text-xs text-gray-500 mt-0.5 leading-tight">View all SKUs worked by a factory</p>
                         </div>
                     </div>
                 </div>
@@ -57,12 +64,12 @@
                     onclick="selectReport('factory_dependency')">
                     <div class="flex items-center gap-4">
                         <div
-                            class="bg-rose-100 text-rose-600 p-3 rounded-lg group-hover:bg-rose-600 group-hover:text-white transition-colors">
-                            <i class="fas fa-exclamation-triangle text-xl"></i>
+                            class="bg-rose-100 text-rose-600 p-3 rounded-lg group-hover:bg-rose-600 group-hover:text-white transition-colors flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-xl w-6 text-center"></i>
                         </div>
                         <div>
-                            <h3 class="font-bold text-gray-700">Factory Dependency</h3>
-                            <p class="text-xs text-gray-700">Risk analysis: SKUs with single factory</p>
+                            <h3 class="font-bold text-gray-700 text-sm">Factory Dependency</h3>
+                            <p class="text-xs text-gray-500 mt-0.5 leading-tight">Risk analysis: SKUs with single factory</p>
                         </div>
                     </div>
                 </div>
@@ -72,12 +79,27 @@
                     onclick="selectReport('rate_history')">
                     <div class="flex items-center gap-4">
                         <div
-                            class="bg-emerald-100 text-emerald-600 p-3 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                            <i class="fas fa-history text-xl"></i>
+                            class="bg-emerald-100 text-emerald-600 p-3 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors flex-shrink-0">
+                            <i class="fas fa-history text-xl w-6 text-center"></i>
                         </div>
                         <div>
-                            <h3 class="font-bold text-gray-700">Rate History</h3>
-                            <p class="text-xs text-gray-700">Track rate changes over time per SKU</p>
+                            <h3 class="font-bold text-gray-700 text-sm">Rate History</h3>
+                            <p class="text-xs text-gray-500 mt-0.5 leading-tight">Track rate changes over time per SKU</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Card 4: Calculator -->
+                <div class="report-card cursor-pointer border-2 border-transparent hover:border-blue-500 rounded-xl p-4 bg-gray-50 hover:bg-white transition-all shadow-sm group"
+                    onclick="selectReport('calculator')">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="bg-blue-100 text-blue-600 p-3 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors flex-shrink-0">
+                            <i class="fas fa-calculator text-xl w-6 text-center"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-700 text-sm">Program Calculator</h3>
+                            <p class="text-xs text-gray-500 mt-0.5 leading-tight">Size-wise quantity calculation</p>
                         </div>
                     </div>
                 </div>
@@ -173,9 +195,107 @@
                 </div>
             </div>
 
+            <!-- Program Calculator Area -->
+            <div id="calculatorSection" class="hidden animate-fade-in-up">
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-4 md:mb-6 glass-card border border-gray-100">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">
+                                <i class="fas fa-calculator text-xl"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg md:text-xl font-bold text-gray-800">Program Calculator</h2>
+                                <p class="text-xs md:text-sm text-gray-500 mt-1">Calculate size-wise required quantity based on percentage</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-4 md:gap-6">
+                        <!-- Input Section -->
+                        <div class="flex-1 bg-gray-50/80 p-4 rounded-xl border border-gray-200">
+                            <div class="mb-5">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Total Quantity</label>
+                                <input type="number" id="calcTotalQty" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white shadow-sm" placeholder="e.g. 1000">
+                            </div>
+                            <h3 class="text-sm font-semibold text-gray-700 mb-3 pb-2 border-b border-gray-200">Size-wise Percentage (%)</h3>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1 ml-1">S</label>
+                                    <input type="number" id="calcPercS" class="calc-perc-input w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white shadow-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1 ml-1">M</label>
+                                    <input type="number" id="calcPercM" class="calc-perc-input w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white shadow-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1 ml-1">L</label>
+                                    <input type="number" id="calcPercL" class="calc-perc-input w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white shadow-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1 ml-1">XL</label>
+                                    <input type="number" id="calcPercXL" class="calc-perc-input w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white shadow-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1 ml-1">XXL</label>
+                                    <input type="number" id="calcPercXXL" class="calc-perc-input w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white shadow-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1 ml-1">3XL</label>
+                                    <input type="number" id="calcPerc3XL" class="calc-perc-input w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white shadow-sm" placeholder="0">
+                                </div>
+                            </div>
+                            <div class="mt-5 text-sm flex justify-between items-center bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                                <span class="text-gray-600 font-medium">Total Percentage:</span>
+                                <span id="calcTotalPerc" class="font-bold text-gray-800 px-3 py-1 rounded bg-gray-100 transition-colors duration-300">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Result Section -->
+                        <div class="flex-1 bg-gradient-to-br from-indigo-50 via-blue-50 to-white p-4 md:p-6 rounded-xl border border-indigo-100 flex flex-col relative overflow-hidden shadow-sm">
+                            <!-- Background decoration -->
+                            <div class="absolute -right-6 -top-6 text-indigo-100 opacity-40 pointer-events-none">
+                                <i class="fas fa-calculator" style="font-size: 8rem;"></i>
+                            </div>
+                            
+                            <h3 class="text-[11px] font-bold text-indigo-800 mb-5 text-center uppercase tracking-widest relative z-10 opacity-80">Required Quantity</h3>
+                            
+                            <div class="grid grid-cols-3 gap-3 md:gap-4 relative z-10 flex-grow content-center">
+                                <div class="text-center bg-white/90 backdrop-blur p-3 rounded-xl shadow-sm border border-white hover:shadow-md transition-all hover:-translate-y-0.5">
+                                    <div class="text-[10px] text-gray-400 font-bold mb-1.5 tracking-wider">S</div>
+                                    <div class="text-xl md:text-2xl font-black text-indigo-700 transition-all duration-300" id="calcResS">0</div>
+                                </div>
+                                <div class="text-center bg-white/90 backdrop-blur p-3 rounded-xl shadow-sm border border-white hover:shadow-md transition-all hover:-translate-y-0.5">
+                                    <div class="text-[10px] text-gray-400 font-bold mb-1.5 tracking-wider">M</div>
+                                    <div class="text-xl md:text-2xl font-black text-indigo-700 transition-all duration-300" id="calcResM">0</div>
+                                </div>
+                                <div class="text-center bg-white/90 backdrop-blur p-3 rounded-xl shadow-sm border border-white hover:shadow-md transition-all hover:-translate-y-0.5">
+                                    <div class="text-[10px] text-gray-400 font-bold mb-1.5 tracking-wider">L</div>
+                                    <div class="text-xl md:text-2xl font-black text-indigo-700 transition-all duration-300" id="calcResL">0</div>
+                                </div>
+                                <div class="text-center bg-white/90 backdrop-blur p-3 rounded-xl shadow-sm border border-white hover:shadow-md transition-all hover:-translate-y-0.5">
+                                    <div class="text-[10px] text-gray-400 font-bold mb-1.5 tracking-wider">XL</div>
+                                    <div class="text-xl md:text-2xl font-black text-indigo-700 transition-all duration-300" id="calcResXL">0</div>
+                                </div>
+                                <div class="text-center bg-white/90 backdrop-blur p-3 rounded-xl shadow-sm border border-white hover:shadow-md transition-all hover:-translate-y-0.5">
+                                    <div class="text-[10px] text-gray-400 font-bold mb-1.5 tracking-wider">XXL</div>
+                                    <div class="text-xl md:text-2xl font-black text-indigo-700 transition-all duration-300" id="calcResXXL">0</div>
+                                </div>
+                                <div class="text-center bg-white/90 backdrop-blur p-3 rounded-xl shadow-sm border border-white hover:shadow-md transition-all hover:-translate-y-0.5">
+                                    <div class="text-[10px] text-gray-400 font-bold mb-1.5 tracking-wider">3XL</div>
+                                    <div class="text-xl md:text-2xl font-black text-indigo-700 transition-all duration-300" id="calcRes3XL">0</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-5 text-center text-sm font-semibold text-indigo-800 bg-indigo-100/60 py-3 rounded-lg relative z-10 transition-colors duration-300 shadow-sm border border-indigo-200/50" id="calcTotalResBg">
+                                Total Pieces: <span id="calcTotalRes" class="font-bold text-xl ml-1.5">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </body>
 
 </html>
-
